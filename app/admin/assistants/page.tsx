@@ -17,6 +17,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter, // Added DialogFooter for consistent button placement
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -32,7 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Users, Key, Eye, EyeOff } from "lucide-react";
 
-// Define the LabAssistant type here or import it from a shared types file
+// Define the LabAssistant type
 interface LabAssistant {
   id: string;
   labAssistantId: string;
@@ -76,55 +77,80 @@ export default function AssistantsPage() {
   }, []);
 
   const loadLabAssistants = async () => {
-    const res = await fetch("/api/lab-assistants");
-    const assistantsData = await res.json();
-    setAssistants(assistantsData);
+    try {
+      const res = await fetch("/api/lab-assistants");
+      const assistantsData = await res.json();
+      setAssistants(assistantsData);
+    } catch (error) {
+      console.error("Failed to load lab assistants:", error);
+    }
   };
 
   const generateLabAssistantId = () => {
     const year = new Date().getFullYear();
+    // Filter out potential nulls/undefineds before map
     const existingIds = assistants
       .map((a) => a.labAssistantId)
       .filter((id) => id && id.startsWith(`LA${year}`));
-    const nextNumber = existingIds.length + 1;
+
+    // Find the max number and increment it, or start at 1
+    let nextNumber = 1;
+    if (existingIds.length > 0) {
+      const maxNum = existingIds.reduce((max, id) => {
+        const numPart = parseInt(id.slice(-3));
+        // Safely parse the number part of the ID
+        if (id.length >= 3) {
+          const numPart = parseInt(id.slice(-3));
+          return numPart > max ? numPart : max;
+        }
+        return max;
+      }, 0);
+      nextNumber = maxNum + 1;
+    }
+
     return `LA${year}${nextNumber.toString().padStart(3, "0")}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const isCreating = !editingAssistant;
+
+    if (isCreating && !formData.password) {
+      alert("Password is required for new lab assistants.");
+      return;
+    }
+
     const assistantData = {
       ...formData,
       labAssistantId: formData.labAssistantId || generateLabAssistantId(),
+      ...(formData.password && { password: formData.password }),
       isActive: true,
     };
 
-    if (editingAssistant) {
-      // Update assistant by making a PATCH request
-      const res = await fetch(`/api/lab-assistants/${editingAssistant.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(assistantData),
-      });
-
-      if (res.ok) {
-        loadLabAssistants();
-        setIsDialogOpen(false);
-        resetForm();
+    try {
+      if (editingAssistant) {
+        // Update assistant by making a PATCH request
+        await fetch(`/api/lab-assistants/${editingAssistant.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(assistantData),
+        });
+      } else {
+        // Create assistant by making a POST request
+        await fetch("/api/lab-assistants", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(assistantData),
+        });
       }
-    } else {
-      // Create assistant by making a POST request
-      const res = await fetch("/api/lab-assistants", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(assistantData),
-      });
 
-      if (res.ok) {
-        loadLabAssistants();
-        setIsDialogOpen(false);
-        resetForm();
-      }
+      loadLabAssistants();
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Failed to save assistant:", error);
+      // In a real app, display an error notification
     }
   };
 
@@ -142,21 +168,22 @@ export default function AssistantsPage() {
     }
 
     if (selectedAssistant) {
-      // Update the password by making a PATCH request to the same endpoint
-      const res = await fetch(`/api/lab-assistants/${selectedAssistant.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: selectedAssistant.email,
-          password: passwordData.newPassword,
-        }),
-      });
+      try {
+        // Update the password by making a PATCH request
+        await fetch(`/api/lab-assistants/${selectedAssistant.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            password: passwordData.newPassword,
+          }),
+        });
 
-      if (res.ok) {
         loadLabAssistants();
         setIsPasswordDialogOpen(false);
         setPasswordData({ newPassword: "", confirmPassword: "" });
         setSelectedAssistant(null);
+      } catch (error) {
+        console.error("Failed to change password:", error);
       }
     }
   };
@@ -169,7 +196,6 @@ export default function AssistantsPage() {
       firstName: assistant.firstName,
       lastName: assistant.lastName,
       email: assistant.email,
-      // You should not pre-populate the password field
       password: "",
       department: assistant.department,
     });
@@ -184,16 +210,16 @@ export default function AssistantsPage() {
   const handleDelete = async (id: string) => {
     if (
       confirm(
-        "Are you sure you want to delete this lab assistant? This will also delete their user account."
+        "Are you sure you want to delete this lab assistant? This will also delete their user account (if implemented)."
       )
     ) {
-      // Delete the assistant by making a DELETE request
-      const res = await fetch(`/api/lab-assistants/${id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
+      try {
+        await fetch(`/api/lab-assistants/${id}`, {
+          method: "DELETE",
+        });
         loadLabAssistants();
+      } catch (error) {
+        console.error("Failed to delete assistant:", error);
       }
     }
   };
@@ -231,39 +257,52 @@ export default function AssistantsPage() {
     }
   };
 
+  // Custom Badge color for consistency
+  const getStatusColor = (isActive: boolean) => {
+    return isActive
+      ? "bg-green-100 text-green-700 font-semibold border border-green-200"
+      : "bg-red-100 text-red-700 font-semibold border border-red-200";
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* --- Header and Action Button --- */}
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Lab Assistants</h1>
-          <p className="text-muted-foreground">
-            Manage lab assistant information and login credentials
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
+            <Users className="h-7 w-7 mr-3 text-blue-600" />
+            Lab Assistants
+          </h1>
+          <p className="text-lg text-gray-500 mt-1">
+            Manage lab assistant accounts, details, and login credentials
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="bg-blue-600 hover:bg-blue-700 transition duration-150 shadow-md">
+              <Plus className="mr-2 h-5 w-5" />
               Add Assistant
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[550px]">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
                 {editingAssistant
                   ? "Edit Lab Assistant"
                   : "Add New Lab Assistant"}
               </DialogTitle>
               <DialogDescription>
                 {editingAssistant
-                  ? "Update assistant information and credentials"
-                  : "Register a new lab assistant with login credentials"}
+                  ? "Update assistant information. Leave password field blank to keep current password."
+                  : "Register a new lab assistant and set up initial credentials."}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="labAssistantId">Lab Assistant ID</Label>
+                  <Label htmlFor="labAssistantId" className="font-semibold">
+                    Lab Assistant ID
+                  </Label>
                   <Input
                     id="labAssistantId"
                     value={formData.labAssistantId}
@@ -275,10 +314,13 @@ export default function AssistantsPage() {
                     }
                     placeholder="LA2024001"
                     required
+                    disabled={!!editingAssistant}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username" className="font-semibold">
+                    Username
+                  </Label>
                   <Input
                     id="username"
                     value={formData.username}
@@ -292,7 +334,9 @@ export default function AssistantsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName" className="font-semibold">
+                    First Name
+                  </Label>
                   <Input
                     id="firstName"
                     value={formData.firstName}
@@ -304,7 +348,9 @@ export default function AssistantsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="lastName" className="font-semibold">
+                    Last Name
+                  </Label>
                   <Input
                     id="lastName"
                     value={formData.lastName}
@@ -317,7 +363,9 @@ export default function AssistantsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="font-semibold">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -330,7 +378,9 @@ export default function AssistantsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="font-semibold">
+                  {editingAssistant ? "New Password (Optional)" : "Password"}
+                </Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -339,14 +389,18 @@ export default function AssistantsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
-                    placeholder="Enter login password"
-                    required
+                    placeholder={
+                      editingAssistant
+                        ? "Leave blank to keep existing password"
+                        : "Enter initial login password"
+                    }
+                    required={!editingAssistant}
                   />
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    size="icon"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 text-gray-500 hover:text-blue-600"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -358,7 +412,9 @@ export default function AssistantsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department" className="font-semibold">
+                  Department
+                </Label>
                 <Input
                   id="department"
                   value={formData.department}
@@ -369,7 +425,7 @@ export default function AssistantsPage() {
                   required
                 />
               </div>
-              <div className="flex justify-end space-x-2">
+              <DialogFooter className="pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
@@ -377,31 +433,37 @@ export default function AssistantsPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
                   {editingAssistant ? "Update Assistant" : "Create Assistant"}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Password Change Dialog */}
+      {/* --- Password Change Dialog --- */}
       <Dialog
         open={isPasswordDialogOpen}
         onOpenChange={handlePasswordDialogChange}
       >
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              <Key className="inline-block h-6 w-6 mr-2 text-blue-600" />
+              Change Password
+            </DialogTitle>
             <DialogDescription>
-              Change password for {selectedAssistant?.firstName}{" "}
-              {selectedAssistant?.lastName}
+              Set a new secure password for **{selectedAssistant?.firstName}{" "}
+              {selectedAssistant?.lastName}** (
+              {selectedAssistant?.labAssistantId})
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <form onSubmit={handlePasswordSubmit} className="space-y-5 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword" className="font-semibold">
+                New Password
+              </Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -412,12 +474,14 @@ export default function AssistantsPage() {
                     newPassword: e.target.value,
                   })
                 }
-                placeholder="Enter new password"
+                placeholder="Enter new password (min 6 chars)"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="font-semibold">
+                Confirm Password
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -432,7 +496,7 @@ export default function AssistantsPage() {
                 required
               />
             </div>
-            <div className="flex justify-end space-x-2">
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -440,81 +504,109 @@ export default function AssistantsPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit">Change Password</Button>
-            </div>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                Update Password
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Lab Assistants ({assistants.filter((a) => a.isActive).length})
+      {/* --- Data Table Card --- */}
+      <Card className="shadow-xl">
+        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
+          <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+            Active Lab Assistants ({assistants.filter((a) => a.isActive).length}
+            )
           </CardTitle>
-          <CardDescription>
-            All registered lab assistants with their login credentials
+          <CardDescription className="text-gray-600">
+            All registered lab assistants, their department, and access status.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {assistants.filter((a) => a.isActive).length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No lab assistants found. Add your first assistant to get started.
+            <div className="text-center py-8 text-gray-500 italic">
+              No active lab assistants found. Click "Add Assistant" to register
+              the first one.
             </div>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-100">
                 <TableRow>
-                  <TableHead>Lab Assistant ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[150px] font-bold text-gray-700">
+                    ID
+                  </TableHead>
+                  <TableHead className="w-[200px] font-bold text-gray-700">
+                    Name
+                  </TableHead>
+                  <TableHead className="w-[120px] font-bold text-gray-700">
+                    Username
+                  </TableHead>
+                  <TableHead className="font-bold text-gray-700">
+                    Email
+                  </TableHead>
+                  <TableHead className="w-[150px] font-bold text-gray-700">
+                    Department
+                  </TableHead>
+                  <TableHead className="w-[100px] font-bold text-gray-700">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-right w-[150px] font-bold text-gray-700">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {assistants
                   .filter((a) => a.isActive)
                   .map((assistant) => (
-                    <TableRow key={assistant.id}>
-                      <TableCell className="font-medium">
+                    <TableRow
+                      key={assistant.id}
+                      className="hover:bg-blue-50/50 transition-colors"
+                    >
+                      <TableCell className="font-semibold text-blue-700">
                         {assistant.labAssistantId}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-gray-800">
                         {assistant.firstName} {assistant.lastName}
                       </TableCell>
-                      <TableCell>{assistant.username}</TableCell>
-                      <TableCell>{assistant.email}</TableCell>
-                      <TableCell>{assistant.department}</TableCell>
+                      <TableCell className="text-gray-600">
+                        {assistant.username}
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {assistant.email}
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {assistant.department}
+                      </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={assistant.isActive ? "default" : "secondary"}
-                        >
+                        <Badge className={getStatusColor(assistant.isActive)}>
                           {assistant.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleEdit(assistant)}
+                            className="text-blue-600 hover:bg-blue-100/70"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleChangePassword(assistant)}
+                            className="text-orange-600 hover:bg-orange-100/70"
                           >
                             <Key className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleDelete(assistant.id)}
+                            className="text-red-600 hover:bg-red-100/70"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

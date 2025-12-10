@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter, // Ensure DialogFooter is imported for button placement
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -35,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Users } from "lucide-react"; // Added Users icon for the main header
 
 interface Group {
   id: string;
@@ -132,6 +133,7 @@ export default function SectionsPage() {
       handleDialogChange(false);
     } catch (err) {
       console.error("Failed to save section:", err);
+      // Add user feedback (e.g., toast)
     }
   };
 
@@ -154,6 +156,7 @@ export default function SectionsPage() {
       handleGroupDialogChange(false);
     } catch (err) {
       console.error("Failed to save group:", err);
+      // Add user feedback (e.g., toast)
     }
   };
 
@@ -169,16 +172,28 @@ export default function SectionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this section?")) {
-      await fetch(`/api/sections/${id}`, { method: "DELETE" });
-      loadSections();
+    if (
+      confirm(
+        "Are you sure you want to delete this section? This will also remove associated groups."
+      )
+    ) {
+      try {
+        await fetch(`/api/sections/${id}`, { method: "DELETE" });
+        loadSections();
+      } catch (err) {
+        console.error("Failed to delete section:", err);
+      }
     }
   };
 
   const handleDeleteGroup = async (groupId: string) => {
     if (confirm("Are you sure you want to delete this group?")) {
-      await fetch(`/api/groups/${groupId}`, { method: "DELETE" });
-      loadSections();
+      try {
+        await fetch(`/api/groups/${groupId}`, { method: "DELETE" });
+        loadSections();
+      } catch (err) {
+        console.error("Failed to delete group:", err);
+      }
     }
   };
 
@@ -187,38 +202,62 @@ export default function SectionsPage() {
     setIsGroupDialogOpen(true);
   };
 
+  const getYearColor = (year: number) => {
+    switch (year) {
+      case 1:
+        return "bg-green-100 text-green-700 border border-green-200";
+      case 2:
+        return "bg-blue-100 text-blue-700 border border-blue-200";
+      case 3:
+        return "bg-yellow-100 text-yellow-700 border border-yellow-200";
+      case 4:
+        return "bg-orange-100 text-orange-700 border border-orange-200";
+      case 5:
+        return "bg-purple-100 text-purple-700 border border-purple-200";
+      default:
+        return "bg-gray-100 text-gray-700 border border-gray-200";
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {" "}
+      {/* Increased outer spacing */}
+      {/* --- Header and Action Button --- */}
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
+            <Users className="h-7 w-7 mr-3 text-blue-600" />{" "}
+            {/* Consistent blue icon */}
             Sections & Groups
           </h1>
-          <p className="text-gray-600">
-            Manage academic sections and their groups
+          <p className="text-lg text-gray-500 mt-1">
+            Manage academic sections and their groups for capacity planning
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="bg-blue-600 hover:bg-blue-700 transition duration-150 shadow-md">
+              <Plus className="mr-2 h-5 w-5" />
               Add Section
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
                 {editingSection ? "Edit Section" : "Add New Section"}
               </DialogTitle>
               <DialogDescription>
                 {editingSection
-                  ? "Update section information"
-                  : "Create a new academic section"}
+                  ? "Update section information and capacity."
+                  : "Create a new academic section and define its parameters."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
               <div>
-                <Label htmlFor="name">Section Name</Label>
+                <Label htmlFor="name" className="font-semibold">
+                  Section Name
+                </Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -230,7 +269,9 @@ export default function SectionsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="year">Year</Label>
+                <Label htmlFor="year" className="font-semibold">
+                  Year Level
+                </Label>
                 <Select
                   value={formData.year}
                   onValueChange={(value) =>
@@ -250,7 +291,9 @@ export default function SectionsPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department" className="font-semibold">
+                  Department
+                </Label>
                 <Input
                   id="department"
                   value={formData.department}
@@ -262,10 +305,13 @@ export default function SectionsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="capacity">Capacity</Label>
+                <Label htmlFor="capacity" className="font-semibold">
+                  Total Capacity (Students)
+                </Label>
                 <Input
                   id="capacity"
                   type="number"
+                  min="1"
                   value={formData.capacity}
                   onChange={(e) =>
                     setFormData({ ...formData, capacity: e.target.value })
@@ -274,106 +320,144 @@ export default function SectionsPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
                 {editingSection ? "Update Section" : "Create Section"}
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Sections</CardTitle>
-          <CardDescription>
-            Academic sections and their associated groups
+      {/* --- Data Table Card --- */}
+      <Card className="shadow-xl">
+        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
+          <CardTitle className="text-2xl font-bold text-gray-800">
+            Section Inventory ({sections.length})
+          </CardTitle>
+          <CardDescription className="text-gray-600">
+            Academic sections and their associated groups for division.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Section Name</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Capacity</TableHead>
-                <TableHead>Groups</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sections.map((section) => (
-                <TableRow key={section.id}>
-                  <TableCell className="font-medium">{section.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{section.year} Year</Badge>
-                  </TableCell>
-                  <TableCell>{section.department}</TableCell>
-                  <TableCell>{section.capacity}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {section.groups.map((group) => (
-                        <Badge
-                          key={group.id}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {group.name}
-                          <button
-                            onClick={() => handleDeleteGroup(group.id)}
-                            className="ml-1 text-red-500 hover:text-red-700"
-                          >
-                            ×
-                          </button>
-                        </Badge>
-                      ))}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openGroupDialog(section.id)}
-                        className="h-6 px-2 text-xs"
-                      >
-                        + Add Group
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(section)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(section.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        <CardContent className="p-0">
+          {sections.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 italic">
+              No sections found. Click "Add Section" to create the first one.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="bg-gray-100">
+                <TableRow>
+                  <TableHead className="w-[150px] font-bold text-gray-700">
+                    Section Name
+                  </TableHead>
+                  <TableHead className="w-[100px] font-bold text-gray-700">
+                    Year
+                  </TableHead>
+                  <TableHead className="font-bold text-gray-700">
+                    Department
+                  </TableHead>
+                  <TableHead className="w-[100px] font-bold text-gray-700">
+                    Capacity
+                  </TableHead>
+                  <TableHead className="w-[40%] font-bold text-gray-700">
+                    Groups
+                  </TableHead>
+                  <TableHead className="text-right w-[120px] font-bold text-gray-700">
+                    Actions
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sections.map((section) => (
+                  <TableRow
+                    key={section.id}
+                    className="hover:bg-blue-50/50 transition-colors"
+                  >
+                    <TableCell className="font-semibold text-gray-800">
+                      {section.name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getYearColor(section.year)}>
+                        {section.year} Year
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {section.department}
+                    </TableCell>
+                    <TableCell className="font-medium text-center text-blue-700">
+                      {section.capacity}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {section.groups.map((group) => (
+                          <Badge
+                            key={group.id}
+                            className="text-xs bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors"
+                          >
+                            {group.name} ({group.capacity})
+                            <button
+                              onClick={() => handleDeleteGroup(group.id)}
+                              className="ml-2 text-white/80 hover:text-white transition-colors"
+                            >
+                              <Trash2 className="h-3 w-3 inline-block" />
+                            </button>
+                          </Badge>
+                        ))}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openGroupDialog(section.id)}
+                          className="h-6 px-2 text-xs text-blue-600 hover:bg-blue-100/70 border border-dashed border-blue-300"
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add Group
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEdit(section)}
+                          className="text-blue-600 hover:bg-blue-100/70"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(section.id)}
+                          className="text-red-600 hover:bg-red-100/70"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
-
       {/* Group Dialog */}
       <Dialog open={isGroupDialogOpen} onOpenChange={handleGroupDialogChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Group</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Add New Group
+            </DialogTitle>
             <DialogDescription>
-              Create a new group for the selected section
+              Create a new student division group for the selected section.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleGroupSubmit} className="space-y-4">
+          <form onSubmit={handleGroupSubmit} className="space-y-5 pt-4">
             <div>
-              <Label htmlFor="groupName">Group Name</Label>
+              <Label htmlFor="groupName" className="font-semibold">
+                Group Name
+              </Label>
               <Input
                 id="groupName"
                 value={groupFormData.name}
@@ -385,10 +469,13 @@ export default function SectionsPage() {
               />
             </div>
             <div>
-              <Label htmlFor="groupCapacity">Group Capacity</Label>
+              <Label htmlFor="groupCapacity" className="font-semibold">
+                Group Capacity (Students)
+              </Label>
               <Input
                 id="groupCapacity"
                 type="number"
+                min="1"
                 value={groupFormData.capacity}
                 onChange={(e) =>
                   setGroupFormData({
@@ -400,7 +487,10 @@ export default function SectionsPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
               Create Group
             </Button>
           </form>

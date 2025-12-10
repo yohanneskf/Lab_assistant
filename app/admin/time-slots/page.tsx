@@ -17,6 +17,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter, // Added DialogFooter import for consistency
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -91,6 +92,7 @@ export default function TimeSlotsPage() {
 
   // Use fetch to get data from the API route
   const loadTimeSlots = async () => {
+    // NOTE: In a real app, you'd add loading/error state management
     const res = await fetch("/api/time-slots");
     const slotsData = await res.json();
     setTimeSlots(slotsData);
@@ -105,33 +107,29 @@ export default function TimeSlotsPage() {
       return;
     }
 
-    if (editingTimeSlot) {
-      // Use fetch with PATCH to update the time slot
-      const res = await fetch(`/api/time-slots/${editingTimeSlot.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        loadTimeSlots();
-        setIsDialogOpen(false);
-        resetForm();
+    try {
+      if (editingTimeSlot) {
+        // Use fetch with PATCH to update the time slot
+        await fetch(`/api/time-slots/${editingTimeSlot.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+      } else {
+        // Use fetch with POST to create a new time slot
+        await fetch("/api/time-slots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
       }
-    } else {
-      // Use fetch with POST to create a new time slot
-      const res = await fetch("/api/time-slots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        loadTimeSlots();
-        setIsDialogOpen(false);
-        resetForm();
-      }
+    } catch (error) {
+      console.error("API call failed:", error);
     }
+
+    loadTimeSlots();
+    setIsDialogOpen(false);
+    resetForm();
   };
 
   const handleEdit = (timeSlot: TimeSlot) => {
@@ -146,14 +144,19 @@ export default function TimeSlotsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this time slot?")) {
-      // Use fetch with DELETE to delete the time slot
-      const res = await fetch(`/api/time-slots/${id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
+    if (
+      confirm(
+        "Are you sure you want to delete this time slot? This action cannot be undone."
+      )
+    ) {
+      try {
+        // Use fetch with DELETE to delete the time slot
+        await fetch(`/api/time-slots/${id}`, {
+          method: "DELETE",
+        });
         loadTimeSlots();
+      } catch (error) {
+        console.error("Delete failed:", error);
       }
     }
   };
@@ -186,27 +189,30 @@ export default function TimeSlotsPage() {
   const getSlotTypeColor = (slotType: string) => {
     switch (slotType) {
       case "Lab":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-700 font-semibold border border-blue-200";
       case "Lecture":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-700 font-semibold border border-green-200";
       case "Tutorial":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-700 font-semibold border border-yellow-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-700 font-semibold border border-gray-200";
     }
   };
 
   const getDayColor = (day: string) => {
     const colors = {
-      Monday: "bg-red-100 text-red-800",
-      Tuesday: "bg-orange-100 text-orange-800",
-      Wednesday: "bg-yellow-100 text-yellow-800",
-      Thursday: "bg-green-100 text-green-800",
-      Friday: "bg-blue-100 text-blue-800",
-      Saturday: "bg-purple-100 text-purple-800",
-      Sunday: "bg-pink-100 text-pink-800",
+      Monday: "bg-red-100 text-red-700",
+      Tuesday: "bg-orange-100 text-orange-700",
+      Wednesday: "bg-yellow-100 text-yellow-700",
+      Thursday: "bg-green-100 text-green-700",
+      Friday: "bg-blue-100 text-blue-700",
+      Saturday: "bg-purple-100 text-purple-700",
+      Sunday: "bg-pink-100 text-pink-700",
     };
-    return colors[day as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    // Use the theme color for the day badge
+    return `${
+      colors[day as keyof typeof colors] || "bg-gray-100 text-gray-700"
+    } font-medium`;
   };
 
   // Sort time slots by day and time
@@ -218,36 +224,45 @@ export default function TimeSlotsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {" "}
+      {/* Consistent outside spacing */}
+      {/* --- Header and Action Button --- */}
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Time Slots</h1>
-          <p className="text-muted-foreground">
-            Manage available time slots for lab sessions
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
+            <Clock className="h-7 w-7 mr-3 text-blue-600" />{" "}
+            {/* Consistent blue icon */}
+            Time Slots
+          </h1>
+          <p className="text-lg text-gray-500 mt-1">
+            Manage all available reusable time slots for scheduling
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="bg-blue-600 hover:bg-blue-700 transition duration-150 shadow-md">
+              <Plus className="mr-2 h-5 w-5" />
               Add Time Slot
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
                 {editingTimeSlot ? "Edit Time Slot" : "Add New Time Slot"}
               </DialogTitle>
               <DialogDescription>
                 {editingTimeSlot
-                  ? "Update time slot information"
-                  : "Create a new available time slot"}
+                  ? "Update time slot details."
+                  : "Create a new available time slot for labs, lectures, or tutorials."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dayOfWeek">Day of Week</Label>
+                  <Label htmlFor="dayOfWeek" className="font-semibold">
+                    Day of Week
+                  </Label>
                   <Select
                     value={formData.dayOfWeek}
                     onValueChange={(value: any) =>
@@ -255,7 +270,7 @@ export default function TimeSlotsPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select Day" />
                     </SelectTrigger>
                     <SelectContent>
                       {DAYS_OF_WEEK.map((day) => (
@@ -267,7 +282,9 @@ export default function TimeSlotsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="slotType">Slot Type</Label>
+                  <Label htmlFor="slotType" className="font-semibold">
+                    Slot Type
+                  </Label>
                   <Select
                     value={formData.slotType}
                     onValueChange={(value: any) =>
@@ -275,10 +292,10 @@ export default function TimeSlotsPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Lab">Lab</SelectItem>
+                      <SelectItem value="Lab">Lab Session</SelectItem>
                       <SelectItem value="Lecture">Lecture</SelectItem>
                       <SelectItem value="Tutorial">Tutorial</SelectItem>
                     </SelectContent>
@@ -287,7 +304,9 @@ export default function TimeSlotsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="startTime">Start Time</Label>
+                  <Label htmlFor="startTime" className="font-semibold">
+                    Start Time
+                  </Label>
                   <Input
                     id="startTime"
                     type="time"
@@ -299,7 +318,9 @@ export default function TimeSlotsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endTime">End Time</Label>
+                  <Label htmlFor="endTime" className="font-semibold">
+                    End Time
+                  </Label>
                   <Input
                     id="endTime"
                     type="time"
@@ -311,7 +332,9 @@ export default function TimeSlotsPage() {
                   />
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
+              <DialogFooter className="pt-4 border-t">
+                {" "}
+                {/* Use DialogFooter for consistent button placement */}
                 <Button
                   type="button"
                   variant="outline"
@@ -319,40 +342,52 @@ export default function TimeSlotsPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
-                  {editingTimeSlot ? "Update Time Slot" : "Create Time Slot"}
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  {editingTimeSlot ? "Update Slot" : "Create Slot"}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+      {/* --- Data Table Card --- */}
+      <Card className="shadow-xl">
+        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
+          <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
             Available Time Slots ({timeSlots.length})
           </CardTitle>
-          <CardDescription>
-            All available time slots for scheduling lab sessions
+          <CardDescription className="text-gray-600">
+            Ordered by day of the week and start time.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {timeSlots.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No time slots found. Add your first time slot to get started.
+            <div className="text-center py-8 text-gray-500 italic">
+              No time slots defined. Click "Add Time Slot" to create the first
+              one.
             </div>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-100">
                 <TableRow>
-                  <TableHead>Day</TableHead>
-                  <TableHead>Start Time</TableHead>
-                  <TableHead>End Time</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[120px] font-bold text-gray-700">
+                    Day
+                  </TableHead>
+                  <TableHead className="w-[150px] font-bold text-gray-700">
+                    Start Time
+                  </TableHead>
+                  <TableHead className="w-[150px] font-bold text-gray-700">
+                    End Time
+                  </TableHead>
+                  <TableHead className="w-[100px] font-bold text-gray-700">
+                    Duration
+                  </TableHead>
+                  <TableHead className="font-bold text-gray-700">
+                    Type
+                  </TableHead>
+                  <TableHead className="text-right font-bold text-gray-700 w-[120px]">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -379,19 +414,24 @@ export default function TimeSlotsPage() {
                       : `${remainingMin}m`;
 
                   return (
-                    <TableRow key={timeSlot.id}>
+                    <TableRow
+                      key={timeSlot.id}
+                      className="hover:bg-blue-50/50 transition-colors"
+                    >
                       <TableCell>
                         <Badge className={getDayColor(timeSlot.dayOfWeek)}>
                           {timeSlot.dayOfWeek}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-semibold text-gray-800">
                         {formatTime(timeSlot.startTime)}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-semibold text-gray-800">
                         {formatTime(timeSlot.endTime)}
                       </TableCell>
-                      <TableCell>{duration}</TableCell>
+                      <TableCell className="text-gray-600 font-medium">
+                        {duration}
+                      </TableCell>
                       <TableCell>
                         <Badge className={getSlotTypeColor(timeSlot.slotType)}>
                           {timeSlot.slotType}
@@ -400,16 +440,18 @@ export default function TimeSlotsPage() {
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleEdit(timeSlot)}
+                            className="text-blue-600 hover:bg-blue-100/70"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleDelete(timeSlot.id)}
+                            className="text-red-600 hover:bg-red-100/70"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

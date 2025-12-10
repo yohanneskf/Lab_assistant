@@ -15,6 +15,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter, // Added DialogFooter import
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,16 +37,65 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Calendar, AlertCircle } from "lucide-react";
 
-// Import types from a central location, not the server
-import {
-  type ScheduleAssignment,
-  type LabRoom,
-  type LabAssistant,
-  type TimeSlot,
-  type Course,
-  type Section,
-  type Group,
-} from "@/types/type";
+// Assuming types are defined here for completeness in the example, or imported.
+interface ScheduleAssignment {
+  id: string;
+  courseId: string;
+  sectionId: string;
+  groupId: string | null;
+  labRoomId: string;
+  labAssistantId: string;
+  timeSlotId: string;
+  status: "active" | "inactive";
+}
+interface LabRoom {
+  id: string;
+  name: string;
+  capacity: number;
+  location: string;
+  isActive: boolean;
+  equipment: string[];
+}
+interface LabAssistant {
+  id: string;
+  labAssistantId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  isActive: boolean;
+}
+interface TimeSlot {
+  id: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  slotType: string;
+  isActive: boolean;
+}
+interface Course {
+  id: string;
+  code: string;
+  name: string;
+  department: string;
+  year: number;
+  credits: number;
+  isActive: boolean;
+}
+interface Section {
+  id: string;
+  name: string;
+  year: number;
+  department: string;
+  capacity: number;
+  isActive: boolean;
+}
+interface Group {
+  id: string;
+  name: string;
+  sectionId: string;
+  capacity: number;
+  isActive: boolean;
+}
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<ScheduleAssignment[]>([]);
@@ -106,8 +156,6 @@ export default function SchedulesPage() {
       setCourses(coursesData);
       setSections(sectionsData);
       setGroups(groupsData);
-
-      console.log("Data loaded successfully");
     } catch (error) {
       console.error("Failed to load data:", error);
     }
@@ -116,6 +164,7 @@ export default function SchedulesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // --- Conflict Check ---
     const conflictCheckRes = await fetch(`/api/schedules/check-conflict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -123,6 +172,7 @@ export default function SchedulesPage() {
         labRoomId: formData.labRoomId,
         labAssistantId: formData.labAssistantId,
         timeSlotId: formData.timeSlotId,
+        // Exclude the current assignment ID if editing
         excludeAssignmentId: editingSchedule?.id,
       }),
     });
@@ -139,6 +189,8 @@ export default function SchedulesPage() {
     const scheduleData = {
       ...formData,
       status: "active",
+      // Convert "no-group" back to null for the API
+      groupId: formData.groupId === "no-group" ? null : formData.groupId,
     };
 
     try {
@@ -179,7 +231,8 @@ export default function SchedulesPage() {
     setFormData({
       courseId: schedule.courseId,
       sectionId: schedule.sectionId,
-      groupId: schedule.groupId || "",
+      // Map null group ID to "no-group" for the select dropdown
+      groupId: schedule.groupId || "no-group",
       labRoomId: schedule.labRoomId,
       labAssistantId: schedule.labAssistantId,
       timeSlotId: schedule.timeSlotId,
@@ -188,8 +241,13 @@ export default function SchedulesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this schedule assignment?")) {
+    if (
+      confirm(
+        "Are you sure you want to delete this schedule assignment? This will mark it as inactive."
+      )
+    ) {
       try {
+        // Assuming deletion is handled by setting status to inactive
         const response = await fetch("/api/schedules", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -226,7 +284,6 @@ export default function SchedulesPage() {
   };
 
   const getLabRoom = (id: string) => labRooms.find((room) => room.id === id);
-  // Corrected: find by labAssistantId
   const getAssistant = (labAssistantId: string) =>
     assistants.find((assistant) => assistant.labAssistantId === labAssistantId);
   const getTimeSlot = (id: string) => timeSlots.find((slot) => slot.id === id);
@@ -240,7 +297,7 @@ export default function SchedulesPage() {
     const hour = Number.parseInt(hours);
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+    return `${displayHour}:${minutes.padStart(2, "0")} ${ampm}`;
   };
 
   const availableGroups = formData.sectionId
@@ -255,39 +312,49 @@ export default function SchedulesPage() {
     timeSlots.length > 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {" "}
+      {/* Consistent outside spacing */}
+      {/* --- Header and Action Button --- */}
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
+            <Calendar className="h-7 w-7 mr-3 text-blue-600" />{" "}
+            {/* Consistent blue icon */}
             Schedule Assignments
           </h1>
-          <p className="text-muted-foreground">
-            Manage lab session schedules and assignments
+          <p className="text-lg text-gray-500 mt-1">
+            Manage lab session schedules by assigning resources and time
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
           <DialogTrigger asChild>
-            <Button disabled={!hasRequiredData}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              disabled={!hasRequiredData}
+              className="bg-blue-600 hover:bg-blue-700 transition duration-150 shadow-md"
+            >
+              <Plus className="mr-2 h-5 w-5" />
               Add Schedule
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
                 {editingSchedule
                   ? "Edit Schedule Assignment"
                   : "Add New Schedule Assignment"}
               </DialogTitle>
               <DialogDescription>
                 {editingSchedule
-                  ? "Update schedule assignment details"
-                  : "Create a new lab session schedule"}
+                  ? "Update schedule assignment details, checking for conflicts."
+                  : "Create a new lab session schedule, ensuring no resource conflicts."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="courseId">Course</Label>
+                <Label htmlFor="courseId" className="font-semibold">
+                  Course
+                </Label>
                 <Select
                   value={formData.courseId}
                   onValueChange={(value) =>
@@ -307,8 +374,7 @@ export default function SchedulesPage() {
                               {course.code} - {course.name}
                             </span>
                             <span className="text-sm text-muted-foreground">
-                              {course.department} • {course.year} Year •{" "}
-                              {course.credits} Credits
+                              {course.department} • {course.year} Year
                             </span>
                           </div>
                         </SelectItem>
@@ -317,7 +383,9 @@ export default function SchedulesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sectionId">Section</Label>
+                <Label htmlFor="sectionId" className="font-semibold">
+                  Section
+                </Label>
                 <Select
                   value={formData.sectionId}
                   onValueChange={(value) =>
@@ -341,7 +409,9 @@ export default function SchedulesPage() {
               </div>
               {availableGroups.length > 0 && (
                 <div className="space-y-2">
-                  <Label htmlFor="groupId">Group (Optional)</Label>
+                  <Label htmlFor="groupId" className="font-semibold">
+                    Group (Optional)
+                  </Label>
                   <Select
                     value={formData.groupId}
                     onValueChange={(value) =>
@@ -365,7 +435,9 @@ export default function SchedulesPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="labRoomId">Lab Room</Label>
+                <Label htmlFor="labRoomId" className="font-semibold">
+                  Lab Room
+                </Label>
                 <Select
                   value={formData.labRoomId}
                   onValueChange={(value) =>
@@ -388,7 +460,9 @@ export default function SchedulesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="labAssistantId">Lab Assistant</Label>
+                <Label htmlFor="labAssistantId" className="font-semibold">
+                  Lab Assistant
+                </Label>
                 <Select
                   value={formData.labAssistantId}
                   onValueChange={(value) =>
@@ -411,7 +485,7 @@ export default function SchedulesPage() {
                               {assistant.firstName} {assistant.lastName}
                             </span>
                             <span className="text-sm text-muted-foreground">
-                              {assistant.email} • {assistant.labAssistantId}
+                              {assistant.email}
                             </span>
                           </div>
                         </SelectItem>
@@ -420,7 +494,9 @@ export default function SchedulesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="timeSlotId">Time Slot</Label>
+                <Label htmlFor="timeSlotId" className="font-semibold">
+                  Time Slot
+                </Label>
                 <Select
                   value={formData.timeSlotId}
                   onValueChange={(value) =>
@@ -436,13 +512,13 @@ export default function SchedulesPage() {
                       .map((slot) => (
                         <SelectItem key={slot.id} value={slot.id}>
                           {slot.dayOfWeek} {formatTime(slot.startTime)} -{" "}
-                          {formatTime(slot.endTime)}
+                          {formatTime(slot.endTime)} ({slot.slotType})
                         </SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex justify-end space-x-2">
+              <DialogFooter className="pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
@@ -450,58 +526,71 @@ export default function SchedulesPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
                   {editingSchedule ? "Update Schedule" : "Create Schedule"}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
+      {/* --- Missing Data Warning --- */}
       {!hasRequiredData && (
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-yellow-300 bg-yellow-50 shadow-md">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-yellow-800">
-              <AlertCircle className="h-5 w-5" />
+            <div className="flex items-start gap-3 text-yellow-800">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium">Missing Required Data</p>
-                <p className="text-sm">
-                  You need to create courses, lab rooms, sections, lab
-                  assistants, and time slots before you can create schedule
-                  assignments.
+                <p className="font-bold text-base">Missing Required Data</p>
+                <p className="text-sm text-yellow-700">
+                  To create a schedule, you must have active **Courses**, **Lab
+                  Rooms**, **Sections**, **Lab Assistants**, and **Time Slots**
+                  configured in the system.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Schedule Assignments (
+      {/* --- Data Table Card --- */}
+      <Card className="shadow-xl">
+        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
+          <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+            Current Assignments (
             {schedules.filter((s) => s.status === "active").length})
           </CardTitle>
-          <CardDescription>
-            All lab session schedule assignments
+          <CardDescription className="text-gray-600">
+            A list of all active lab session assignments.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {schedules.filter((s) => s.status === "active").length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No schedule assignments found. Create your first schedule
-              assignment to get started.
+            <div className="text-center py-8 text-gray-500 italic">
+              No active schedule assignments found. Click "Add Schedule" to
+              create the first one.
             </div>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-100">
                 <TableRow>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Section & Group</TableHead>
-                  <TableHead>Lab Room</TableHead>
-                  <TableHead>Lab Assistant</TableHead>
-                  <TableHead>Day & Time</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[20%] font-bold text-gray-700">
+                    Course
+                  </TableHead>
+                  <TableHead className="w-[18%] font-bold text-gray-700">
+                    Section & Group
+                  </TableHead>
+                  <TableHead className="w-[17%] font-bold text-gray-700">
+                    Lab Room
+                  </TableHead>
+                  <TableHead className="w-[25%] font-bold text-gray-700">
+                    Lab Assistant
+                  </TableHead>
+                  <TableHead className="w-[12%] font-bold text-gray-700">
+                    Day & Time
+                  </TableHead>
+                  <TableHead className="text-right w-[8%] font-bold text-gray-700">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -514,53 +603,67 @@ export default function SchedulesPage() {
                       ? getGroup(schedule.groupId)
                       : null;
                     const labRoom = getLabRoom(schedule.labRoomId);
-                    const assistant = getAssistant(schedule.labAssistantId); // Corrected: passing labAssistantId
+                    const assistant = getAssistant(schedule.labAssistantId);
                     const timeSlot = getTimeSlot(schedule.timeSlotId);
 
                     return (
-                      <TableRow key={schedule.id}>
+                      <TableRow
+                        key={schedule.id}
+                        className="hover:bg-blue-50/50 transition-colors"
+                      >
                         <TableCell>
                           <div>
-                            <div className="font-medium">{course?.code}</div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="font-semibold text-gray-800">
+                              {course?.code}
+                            </div>
+                            <div className="text-sm text-gray-500">
                               {course?.name}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{section?.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {section?.year} Year • {section?.department}
-                              {group && <span> • {group.name}</span>}
+                            <div className="font-medium text-gray-800">
+                              {section?.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {section?.department}
+                              {group && (
+                                <span className="font-semibold text-blue-700">
+                                  {" "}
+                                  • {group.name}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{labRoom?.name}</div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="font-medium text-gray-800">
+                              {labRoom?.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
                               {labRoom?.location}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">
+                            <div className="font-medium text-gray-800">
                               {assistant?.firstName} {assistant?.lastName}
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {assistant?.email} • {assistant?.labAssistantId}
+                            <div className="text-xs text-gray-500">
+                              {assistant?.email}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           {timeSlot && (
                             <div>
-                              <div className="font-medium">
+                              <div className="font-medium text-gray-800">
                                 {timeSlot.dayOfWeek}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-xs text-gray-500">
                                 {formatTime(timeSlot.startTime)} -{" "}
                                 {formatTime(timeSlot.endTime)}
                               </div>
@@ -570,16 +673,18 @@ export default function SchedulesPage() {
                         <TableCell className="text-right">
                           <div className="flex justify-end space-x-2">
                             <Button
-                              variant="outline"
-                              size="sm"
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleEdit(schedule)}
+                              className="text-blue-600 hover:bg-blue-100/70"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="outline"
-                              size="sm"
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleDelete(schedule.id)}
+                              className="text-red-600 hover:bg-red-100/70"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

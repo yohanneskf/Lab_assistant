@@ -76,6 +76,7 @@ export default function CoursesPage() {
 
   // Use fetch to get data from the API route
   const loadCourses = async () => {
+    // NOTE: Add error handling and loading state for a production app
     const res = await fetch("/api/courses");
     const coursesData = await res.json();
     setCourses(coursesData);
@@ -89,31 +90,32 @@ export default function CoursesPage() {
       isActive: true,
     };
 
-    if (editingCourse) {
-      // Use fetch with PATCH to update the course
-      const res = await fetch(`/api/courses/${editingCourse.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(courseData),
-      });
-      if (res.ok) {
-        loadCourses();
-        setIsDialogOpen(false);
-        resetForm();
+    try {
+      if (editingCourse) {
+        // Use fetch with PATCH to update the course
+        const res = await fetch(`/api/courses/${editingCourse.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(courseData),
+        });
+        if (!res.ok) throw new Error("Update failed");
+      } else {
+        // Use fetch with POST to create a new course
+        const res = await fetch("/api/courses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(courseData),
+        });
+        if (!res.ok) throw new Error("Creation failed");
       }
-    } else {
-      // Use fetch with POST to create a new course
-      const res = await fetch("/api/courses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(courseData),
-      });
-      if (res.ok) {
-        loadCourses();
-        setIsDialogOpen(false);
-        resetForm();
-      }
+    } catch (error) {
+      console.error("API call failed:", error);
+      // Implement user-facing error message here
     }
+
+    loadCourses();
+    setIsDialogOpen(false);
+    resetForm();
   };
 
   const handleEdit = (course: Course) => {
@@ -132,13 +134,20 @@ export default function CoursesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this course?")) {
-      // Use fetch with DELETE to deactivate the course
-      const res = await fetch(`/api/courses/${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
+    if (
+      confirm(
+        "Are you sure you want to delete this course? This action cannot be undone."
+      )
+    ) {
+      try {
+        // Use fetch with DELETE to deactivate the course
+        const res = await fetch(`/api/courses/${id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Deletion failed");
         loadCourses();
+      } catch (error) {
+        console.error("Delete failed:", error);
       }
     }
   };
@@ -167,63 +176,75 @@ export default function CoursesPage() {
   const getYearColor = (year: number) => {
     switch (year) {
       case 1:
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-700 font-semibold border border-green-200";
       case 2:
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-700 font-semibold border border-blue-200";
       case 3:
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-700 font-semibold border border-yellow-200";
       case 4:
-        return "bg-orange-100 text-orange-800";
+        return "bg-orange-100 text-orange-700 font-semibold border border-orange-200";
       case 5:
-        return "bg-purple-100 text-purple-800";
+        return "bg-purple-100 text-purple-700 font-semibold border border-purple-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-700 font-semibold border border-gray-200";
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {" "}
+      {/* Increased outer spacing */}
+      {/* --- Header and Action Button --- */}
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Courses</h1>
-          <p className="text-muted-foreground">
-            Manage course catalog with academic structure
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
+            <BookOpen className="h-7 w-7 mr-3 text-green-600" />
+            Courses
+          </h1>
+          <p className="text-lg text-gray-500 mt-1">
+            Manage course catalog with academic structure details
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="bg-green-600 hover:bg-green-700 transition duration-150 shadow-md">
+              <Plus className="mr-2 h-5 w-5" />
               Add Course
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
                 {editingCourse ? "Edit Course" : "Add New Course"}
               </DialogTitle>
               <DialogDescription>
                 {editingCourse
-                  ? "Update course information"
-                  : "Create a new course with academic details"}
+                  ? "Update course information and academic structure."
+                  : "Create a new course with academic details for scheduling."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+              {" "}
+              {/* Increased form spacing */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="code">Course Code</Label>
+                  <Label htmlFor="code" className="font-semibold">
+                    Course Code
+                  </Label>
                   <Input
                     id="code"
                     value={formData.code}
                     onChange={(e) =>
                       setFormData({ ...formData, code: e.target.value })
                     }
-                    placeholder="CS101"
+                    placeholder="e.g., CS101"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="credits">Credits</Label>
+                  <Label htmlFor="credits" className="font-semibold">
+                    Credits
+                  </Label>
                   <Input
                     id="credits"
                     type="number"
@@ -241,30 +262,38 @@ export default function CoursesPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Course Name</Label>
+                <Label htmlFor="name" className="font-semibold">
+                  Course Name
+                </Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="Introduction to Computer Science"
+                  placeholder="e.g., Introduction to Computer Science"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department" className="font-semibold">
+                  Department
+                </Label>
                 <Input
                   id="department"
                   value={formData.department}
                   onChange={(e) =>
                     setFormData({ ...formData, department: e.target.value })
                   }
-                  placeholder="Computer Science"
+                  placeholder="e.g., Computer Science"
                   required
                 />
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              {/* Academic Structure Group */}
+              <div className="grid grid-cols-3 gap-4 border p-4 rounded-lg bg-gray-50">
+                <h4 className="col-span-3 text-sm font-bold text-gray-700 uppercase mb-2">
+                  Academic Structure
+                </h4>
                 <div className="space-y-2">
                   <Label htmlFor="year">Year Level</Label>
                   <Select
@@ -274,7 +303,7 @@ export default function CoursesPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select Year" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">1st Year</SelectItem>
@@ -293,7 +322,7 @@ export default function CoursesPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, section: e.target.value })
                     }
-                    placeholder="A"
+                    placeholder="e.g., A, B, C"
                     required
                   />
                 </div>
@@ -305,13 +334,15 @@ export default function CoursesPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, batch: e.target.value })
                     }
-                    placeholder="2024"
+                    placeholder="e.g., 2024"
                     required
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="studentType">Student Type</Label>
+                <Label htmlFor="studentType" className="font-semibold">
+                  Student Type
+                </Label>
                 <Select
                   value={formData.studentType}
                   onValueChange={(value: "regular" | "extension") =>
@@ -319,7 +350,7 @@ export default function CoursesPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select Type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="regular">Regular</SelectItem>
@@ -327,7 +358,7 @@ export default function CoursesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-end space-x-2 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
@@ -335,7 +366,10 @@ export default function CoursesPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700"
+                >
                   {editingCourse ? "Update Course" : "Create Course"}
                 </Button>
               </div>
@@ -343,53 +377,79 @@ export default function CoursesPage() {
           </DialogContent>
         </Dialog>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
+      {/* --- Data Table Card --- */}
+      <Card className="shadow-xl">
+        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
+          <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
             Course Catalog ({courses.length})
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600">
             All courses with academic structure details
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {courses.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No courses found. Add your first course to get started.
+            <div className="text-center py-8 text-gray-500 italic">
+              No courses found. Click "Add Course" to get started.
             </div>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-100">
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Year & Section</TableHead>
-                  <TableHead>Batch</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Credits</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[100px] font-bold text-gray-700">
+                    Code
+                  </TableHead>
+                  <TableHead className="w-[300px] font-bold text-gray-700">
+                    Name
+                  </TableHead>
+                  <TableHead className="font-bold text-gray-700">
+                    Department
+                  </TableHead>
+                  <TableHead className="font-bold text-gray-700">
+                    Year & Section
+                  </TableHead>
+                  <TableHead className="w-[80px] font-bold text-gray-700">
+                    Batch
+                  </TableHead>
+                  <TableHead className="w-[100px] font-bold text-gray-700">
+                    Type
+                  </TableHead>
+                  <TableHead className="w-[80px] font-bold text-gray-700">
+                    Credits
+                  </TableHead>
+                  <TableHead className="text-right font-bold text-gray-700 w-[120px]">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {courses.map((course) => (
-                  <TableRow key={course.id}>
-                    <TableCell className="font-medium">{course.code}</TableCell>
-                    <TableCell>{course.name}</TableCell>
-                    <TableCell>{course.department}</TableCell>
+                  <TableRow
+                    key={course.id}
+                    className="hover:bg-green-50/50 transition-colors"
+                  >
+                    <TableCell className="font-semibold text-green-700">
+                      {course.code}
+                    </TableCell>
+                    <TableCell className="text-gray-800 font-medium">
+                      {course.name}
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {course.department}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Badge className={getYearColor(course.year)}>
                           Year {course.year}
                         </Badge>
-                        <span className="text-sm">
-                          Section {course.section}
+                        <span className="text-sm text-gray-600">
+                          Sec {course.section}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{course.batch}</TableCell>
+                    <TableCell className="text-gray-700">
+                      {course.batch}
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -397,28 +457,38 @@ export default function CoursesPage() {
                             ? "default"
                             : "outline"
                         }
+                        className={
+                          course.studentType === "regular"
+                            ? "bg-purple-600 hover:bg-purple-700 text-white"
+                            : "border-purple-300 text-purple-600"
+                        }
                       >
                         {course.studentType}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">
-                        {course.credits} credits
+                      <Badge
+                        variant="secondary"
+                        className="bg-gray-200 text-gray-700 font-semibold"
+                      >
+                        {course.credits} Cr
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleEdit(course)}
+                          className="text-blue-600 hover:bg-blue-100/70"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDelete(course.id)}
+                          className="text-red-600 hover:bg-red-100/70"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Key } from "lucide-react"; // Added Key icon
 import { AuthService } from "@/lib/auth";
 import Link from "next/link";
 
@@ -68,6 +68,16 @@ export default function ChangePasswordPage() {
       return;
     }
 
+    // Prevent changing password to the same one (optional, but good UX)
+    if (formData.currentPassword === formData.newPassword) {
+      setMessage({
+        type: "error",
+        text: "New password cannot be the same as the current password.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/assistant/change-password", {
         method: "POST",
@@ -99,9 +109,10 @@ export default function ChangePasswordPage() {
         });
       }
     } catch (error) {
+      console.error("Password change API error:", error);
       setMessage({
         type: "error",
-        text: "An error occurred. Please try again.",
+        text: "Network or server error. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -113,25 +124,42 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg shadow-2xl">
+        {" "}
+        {/* Increased max-width and shadow */}
+        <CardHeader className="space-y-1 border-b pb-4">
           <div className="flex items-center space-x-2">
-            <Link href="/assistant">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4" />
+            <Link href="/assistant" passHref>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-500 hover:text-green-600 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <CardTitle className="text-2xl">Change Password</CardTitle>
-              <CardDescription>Update your account password</CardDescription>
+              <CardTitle className="text-3xl font-bold text-gray-800 flex items-center">
+                <Key className="h-6 w-6 mr-2 text-green-600" />
+                Change Password
+              </CardTitle>
+              <CardDescription className="text-gray-500 mt-1">
+                Ensure your account is secure by setting a new strong password.
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Current Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <Label
+                htmlFor="currentPassword"
+                className="font-semibold text-gray-700"
+              >
+                Current Password
+              </Label>
               <div className="relative">
                 <Input
                   id="currentPassword"
@@ -143,13 +171,15 @@ export default function ChangePasswordPage() {
                       currentPassword: e.target.value,
                     })
                   }
+                  placeholder="Enter your current password"
                   required
+                  className="pr-10 focus-visible:ring-green-500 focus-visible:ring-2"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-3 py-2 text-gray-500 hover:text-green-600 transition-colors"
                   onClick={() => togglePasswordVisibility("current")}
                 >
                   {showPasswords.current ? (
@@ -161,8 +191,14 @@ export default function ChangePasswordPage() {
               </div>
             </div>
 
+            {/* New Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label
+                htmlFor="newPassword"
+                className="font-semibold text-gray-700"
+              >
+                New Password (Min 6 characters)
+              </Label>
               <div className="relative">
                 <Input
                   id="newPassword"
@@ -171,13 +207,15 @@ export default function ChangePasswordPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, newPassword: e.target.value })
                   }
+                  placeholder="Enter a new password"
                   required
+                  className="pr-10 focus-visible:ring-green-500 focus-visible:ring-2"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-3 py-2 text-gray-500 hover:text-green-600 transition-colors"
                   onClick={() => togglePasswordVisibility("new")}
                 >
                   {showPasswords.new ? (
@@ -189,8 +227,14 @@ export default function ChangePasswordPage() {
               </div>
             </div>
 
+            {/* Confirm New Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Label
+                htmlFor="confirmPassword"
+                className="font-semibold text-gray-700"
+              >
+                Confirm New Password
+              </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -202,13 +246,15 @@ export default function ChangePasswordPage() {
                       confirmPassword: e.target.value,
                     })
                   }
+                  placeholder="Confirm the new password"
                   required
+                  className="pr-10 focus-visible:ring-green-500 focus-visible:ring-2"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-3 py-2 text-gray-500 hover:text-green-600 transition-colors"
                   onClick={() => togglePasswordVisibility("confirm")}
                 >
                   {showPasswords.confirm ? (
@@ -220,26 +266,39 @@ export default function ChangePasswordPage() {
               </div>
             </div>
 
+            {/* Message Alert */}
             {message && (
               <Alert
-                className={
+                className={`shadow-sm ${
                   message.type === "error"
-                    ? "border-red-200 bg-red-50"
-                    : "border-green-200 bg-green-50"
-                }
+                    ? "border-red-400 bg-red-50"
+                    : "border-green-400 bg-green-50"
+                }`}
               >
                 <AlertDescription
-                  className={
-                    message.type === "error" ? "text-red-800" : "text-green-800"
-                  }
+                  className={`font-medium ${
+                    message.type === "error" ? "text-red-700" : "text-green-700"
+                  }`}
                 >
                   {message.text}
                 </AlertDescription>
               </Alert>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Changing Password..." : "Change Password"}
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 transition duration-150 py-2 text-lg"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Key className="animate-spin h-5 w-5 mr-2" /> Saving
+                  Changes...
+                </>
+              ) : (
+                "Change Password"
+              )}
             </Button>
           </form>
         </CardContent>
