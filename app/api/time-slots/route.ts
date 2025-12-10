@@ -1,7 +1,7 @@
 // File: app/api/time-slots/route.ts
 
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "@/prisma/client";
 import { type TimeSlot } from "@/types/type";
 
 export async function GET() {

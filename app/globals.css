@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -120,4 +120,17 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ./globals.css */
+
+/* Apply the variable for the entire document */
+:root {
+  font-family: var(--font-sans);
+}
+
+/* Example of using the mono font */
+code,
+pre {
+  font-family: var(--font-mono);
 }

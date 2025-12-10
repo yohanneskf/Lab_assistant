@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "@/prisma/client";
 // GET request to fetch all lab rooms
 export async function GET() {
   const labRooms = await prisma.labRoom.findMany({

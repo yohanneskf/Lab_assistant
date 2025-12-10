@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "@/prisma/client";
 import bcrypt from "bcryptjs";
 
 // GET request to fetch all active lab assistants

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "@/prisma/client";
 import { type TimeSlot } from "@/types/type";
 
 // PATCH request to update a time slot

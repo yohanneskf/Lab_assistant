@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import prisma from "@/prisma/client";
 
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
@@ -18,7 +18,9 @@ export async function POST(request: Request) {
     const user = await prisma.user.findUnique({
       where: { email },
     });
-
+    const alluser = await prisma.user.findMany();
+    console.log("All users in DB:", alluser);
+    console.log("User found:", user);
     if (!user) {
       return NextResponse.json(
         { message: "Invalid email or password" },

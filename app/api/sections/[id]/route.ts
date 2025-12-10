@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-
+import prisma from "@/prisma/client";
 export async function PUT(
   req: Request,
   { params }: { params: { id: string } }

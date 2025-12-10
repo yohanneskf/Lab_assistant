@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "@/prisma/client";
 
 // PATCH request to update a lab room
 export async function PATCH(
