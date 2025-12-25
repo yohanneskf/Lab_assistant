@@ -17,7 +17,6 @@ export default function HomePage() {
   }, []);
 
   return (
-    // 1. Updated Background and Padding: Use a slightly darker neutral background and add vertical padding
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12">
       {/* 2. Increased Max Width and Shadow: Make the container a bit wider and add a subtle shadow */}
       <div className="max-w-md w-full p-6 sm:p-8 space-y-10 bg-white rounded-xl shadow-2xl">
