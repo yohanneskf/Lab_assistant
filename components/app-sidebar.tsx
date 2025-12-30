@@ -4,23 +4,17 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
-  BookOpen,
   Users,
-  Clock,
   Calendar,
-  LogOut,
-  Layers,
   LayoutDashboard,
   ShieldCheck,
   ChevronRight,
   Settings,
-  User,
 } from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -28,32 +22,30 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { AuthService } from "@/lib/auth";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { UserProfileDialog } from "@/components/user-profile-dialog";
 
-const data = {
+import { type LucideIcon } from "lucide-react";
+
+interface NavItem {
+  title: string;
+  url?: string;
+  icon: LucideIcon;
+  isActive?: boolean;
+  items?: {
+    title: string;
+    url: string;
+  }[];
+}
+
+const data: Record<"admin" | "assistant", NavItem[]> = {
   admin: [
     {
       title: "Dashboard",
@@ -123,19 +115,18 @@ export function AppSidebar({
   ...props
 }: { role?: "admin" | "assistant" } & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const router = useRouter();
   const { isMobile } = useSidebar();
-  const user = AuthService.getCurrentUser();
   const navItems = data[role];
-  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
-
-  const handleLogout = () => {
-    AuthService.logout();
-    router.push("/");
-  };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border" {...props}>
+    <Sidebar
+      collapsible="icon"
+      className={cn(
+        "border-r border-border",
+        isMobile && "bg-zinc-900 text-zinc-50 border-r-0"
+      )}
+      {...props}
+    >
       <SidebarHeader className="h-16 border-b border-border flex items-center px-4">
         <div className="flex items-center gap-3">
           <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg">
@@ -172,14 +163,21 @@ export function AppSidebar({
                     className={cn(
                       "font-bold transition-all duration-200 hover:bg-primary/10",
                       isActive &&
-                        "bg-primary/10 text-primary hover:bg-primary/20"
+                        "bg-primary/10 text-primary hover:bg-primary/20",
+                      isMobile &&
+                        "hover:bg-zinc-800 text-zinc-300 hover:text-white"
                     )}
                   >
                     <a href={item.url}>
                       <item.icon
                         className={cn(
                           "size-5",
-                          isActive ? "text-primary" : "text-muted-foreground"
+                          isActive ? "text-primary" : "text-muted-foreground",
+                          isMobile && isActive
+                            ? "text-primary"
+                            : isMobile
+                            ? "text-zinc-400"
+                            : ""
                         )}
                       />
                       <span className="group-data-[collapsible=icon]:hidden">
@@ -195,16 +193,27 @@ export function AppSidebar({
               <Collapsible
                 key={item.title}
                 asChild
-                defaultOpen={item.isActive}
+                defaultOpen={item.items?.some(
+                  (subItem) => pathname === subItem.url
+                )}
                 className="group/collapsible"
               >
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton
                       tooltip={item.title}
-                      className="font-bold hover:bg-primary/10"
+                      className={cn(
+                        "font-bold hover:bg-primary/10",
+                        isMobile &&
+                          "hover:bg-zinc-800 text-zinc-300 hover:text-white"
+                      )}
                     >
-                      <item.icon className="size-5 text-muted-foreground" />
+                      <item.icon
+                        className={cn(
+                          "size-5 text-muted-foreground",
+                          isMobile && "text-zinc-400"
+                        )}
+                      />
                       <span className="group-data-[collapsible=icon]:hidden">
                         {item.title}
                       </span>
@@ -224,7 +233,12 @@ export function AppSidebar({
                                 "font-semibold text-xs transition-colors py-2",
                                 isSubActive
                                   ? "text-primary bg-primary/5"
-                                  : "text-muted-foreground hover:text-foreground"
+                                  : "text-muted-foreground hover:text-foreground",
+                                isMobile && isSubActive
+                                  ? "text-primary bg-zinc-800"
+                                  : isMobile
+                                  ? "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                                  : ""
                               )}
                             >
                               <a href={subItem.url}>{subItem.title}</a>
@@ -240,97 +254,7 @@ export function AppSidebar({
           })}
         </SidebarMenu>
       </SidebarContent>
-
-      <SidebarFooter className="border-t border-border p-4">
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton
-                      size="lg"
-                      className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-primary/5 transition-colors rounded-xl p-2"
-                    >
-                      <Avatar className="h-8 w-8 rounded-lg border-2 border-primary/20 shadow-sm">
-                        <AvatarImage
-                          src={undefined}
-                          alt={user?.username || "User"}
-                        />
-                        <AvatarFallback className="bg-primary/10 text-primary font-black uppercase text-xs">
-                          {user?.username?.[0] || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden ml-2">
-                        <span className="truncate font-black text-foreground">
-                          {user?.firstName} {user?.lastName}
-                        </span>
-                        <span className="truncate text-[10px] font-bold text-muted-foreground uppercase opacity-70">
-                          @{user?.username}
-                        </span>
-                      </div>
-                      <ChevronRight className="ml-auto size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl shadow-2xl border-border bg-card/80 backdrop-blur-xl"
-                    side={isMobile ? "bottom" : "right"}
-                    align="end"
-                    sideOffset={4}
-                  >
-                    <DropdownMenuLabel className="p-0 font-normal">
-                      <div className="flex items-center gap-3 px-3 py-2">
-                        <Avatar className="h-8 w-8 rounded-lg">
-                          <AvatarImage
-                            src={undefined}
-                            alt={user?.username || "User"}
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary font-black uppercase">
-                            {user?.username?.[0] || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="grid flex-1 text-left text-sm leading-tight">
-                          <span className="truncate font-black">
-                            {user?.firstName} {user?.lastName}
-                          </span>
-                          <span className="truncate text-xs text-muted-foreground">
-                            @{user?.username}
-                          </span>
-                        </div>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-border" />
-                    <DropdownMenuItem
-                      onClick={() => setIsProfileOpen(true)}
-                      className="cursor-pointer font-bold gap-2 p-3"
-                    >
-                      <User className="size-4" />
-                      My Account
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-border" />
-                    <DropdownMenuItem
-                      onClick={handleLogout}
-                      className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer font-bold gap-2 p-3"
-                    >
-                      <LogOut className="size-4" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </div>
-          <div className="group-data-[collapsible=icon]:hidden">
-            <ThemeToggle />
-          </div>
-        </div>
-      </SidebarFooter>
       <SidebarRail />
-      <UserProfileDialog
-        isOpen={isProfileOpen}
-        onClose={setIsProfileOpen}
-        user={user}
-      />
     </Sidebar>
   );
 }

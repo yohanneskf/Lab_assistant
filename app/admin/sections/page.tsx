@@ -321,115 +321,6 @@ export default function SectionsPage() {
       animate={{ opacity: 1, scale: 1 }}
       className="space-y-10"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <div>
-          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Users className="h-8 w-8 text-primary" />
-            </div>
-            Sections & Groups
-          </h1>
-          <p className="text-muted-foreground mt-2 font-medium">
-            Divide academic years into sections and student groups.
-          </p>
-        </div>
-
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              size="lg"
-              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Add Section
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingSection ? "Edit Section" : "New Section"}
-              </DialogTitle>
-              <DialogDescription>
-                Define academic cohort and total capacity.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Section Name
-                </Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g., Section A"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Year Level
-                  </Label>
-                  <Select
-                    value={formData.year}
-                    onValueChange={(v) => setFormData({ ...formData, year: v })}
-                  >
-                    <SelectTrigger className="rounded-lg h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {[1, 2, 3, 4, 5].map((y) => (
-                        <SelectItem key={y} value={y.toString()}>
-                          {y}st Year
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Max Capacity
-                  </Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={formData.capacity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, capacity: e.target.value })
-                    }
-                    className="h-10 rounded-lg"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Department
-                </Label>
-                <Input
-                  value={formData.department}
-                  onChange={(e) =>
-                    setFormData({ ...formData, department: e.target.value })
-                  }
-                  placeholder="e.g., Computer Science"
-                  required
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingSection ? "Update Section" : "Create Section"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/30 pb-6 border-b">
@@ -453,6 +344,114 @@ export default function SectionsPage() {
               data={sections}
               searchKey="name"
               searchPlaceholder="Filter by section..."
+              action={
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Section
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingSection ? "Edit Section" : "New Section"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Define academic cohort and total capacity.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Section Name
+                        </Label>
+                        <Input
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, name: e.target.value })
+                          }
+                          placeholder="e.g., Section A"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Year Level
+                          </Label>
+                          <Select
+                            value={formData.year}
+                            onValueChange={(v) =>
+                              setFormData({ ...formData, year: v })
+                            }
+                          >
+                            <SelectTrigger className="rounded-lg h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              {[1, 2, 3, 4, 5].map((y) => (
+                                <SelectItem key={y} value={y.toString()}>
+                                  {y}st Year
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Max Capacity
+                          </Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={formData.capacity}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                capacity: e.target.value,
+                              })
+                            }
+                            className="h-10 rounded-lg"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Department
+                        </Label>
+                        <Input
+                          value={formData.department}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              department: e.target.value,
+                            })
+                          }
+                          placeholder="e.g., Computer Science"
+                          required
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={resetForm}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit">
+                          {editingSection ? "Update Section" : "Create Section"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              }
             />
           </CardContent>
         </Card>

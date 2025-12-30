@@ -45,6 +45,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
+  action?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -52,6 +53,7 @@ export function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder = "Search...",
+  action,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -101,6 +103,7 @@ export function DataTable<TData, TValue>({
           />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
+          {action}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

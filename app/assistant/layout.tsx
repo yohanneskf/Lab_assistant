@@ -5,11 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthService } from "@/lib/auth";
 import { AppSidebar } from "@/components/app-sidebar";
-import {
-  SidebarProvider,
-  SidebarInset,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { AppHeader } from "@/components/app-header";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { motion } from "framer-motion";
 import { PageSkeleton } from "@/components/page-skeleton";
 
@@ -37,16 +34,7 @@ export default function AssistantLayout({
       <SidebarProvider defaultOpen={true}>
         <AppSidebar role="assistant" />
         <SidebarInset className="relative flex min-h-screen flex-col">
-          <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 px-4 transition-[width,height] ease-linear bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-            <SidebarTrigger className="-ml-1" />
-            <div className="h-8 w-px bg-border mx-2" />
-            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              <span className="hidden sm:inline">
-                Laboratory Management System
-              </span>
-              <span className="sm:hidden">LMS</span>
-            </div>
-          </header>
+          <AppHeader />
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

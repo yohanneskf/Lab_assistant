@@ -5,6 +5,9 @@ import prisma from "@/lib/prisma";
 export interface AuthUser {
   id: string;
   email: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
   role: "admin" | "lab_assistant";
   labAssistantId?: string;
 }

@@ -330,157 +330,6 @@ export default function AssistantsPage() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-10"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <div>
-          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Users className="h-8 w-8 text-primary" />
-            </div>
-            Lab Assistants
-          </h1>
-          <p className="text-muted-foreground mt-2 font-medium">
-            Manage assistant credentials and department assignments.
-          </p>
-        </div>
-
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              size="lg"
-              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Add Assistant
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px] rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingAssistant ? "Edit Assistant" : "Register Assistant"}
-              </DialogTitle>
-              <DialogDescription>
-                Configure personal details and access permissions.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Internal ID
-                  </Label>
-                  <Input
-                    value={formData.labAssistantId}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Username
-                  </Label>
-                  <Input
-                    value={formData.username}
-                    onChange={(e) =>
-                      setFormData({ ...formData, username: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    First Name
-                  </Label>
-                  <Input
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Last Name
-                  </Label>
-                  <Input
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Email Address
-                </Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              {!editingAssistant && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Secure Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) =>
-                        setFormData({ ...formData, password: e.target.value })
-                      }
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Department
-                </Label>
-                <Input
-                  value={formData.department}
-                  onChange={(e) =>
-                    setFormData({ ...formData, department: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingAssistant ? "Update Profile" : "Create Account"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/30 pb-6 border-b">
@@ -504,6 +353,167 @@ export default function AssistantsPage() {
               data={assistants}
               searchKey="username"
               searchPlaceholder="Filter by username..."
+              action={
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Assistant
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[550px] rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingAssistant
+                          ? "Edit Assistant"
+                          : "Register Assistant"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Configure personal details and access permissions.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Internal ID
+                          </Label>
+                          <Input
+                            value={formData.labAssistantId}
+                            disabled
+                            className="bg-muted"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Username
+                          </Label>
+                          <Input
+                            value={formData.username}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                username: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            First Name
+                          </Label>
+                          <Input
+                            value={formData.firstName}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                firstName: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Last Name
+                          </Label>
+                          <Input
+                            value={formData.lastName}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                lastName: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Email Address
+                        </Label>
+                        <Input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) =>
+                            setFormData({ ...formData, email: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                      {!editingAssistant && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Secure Password
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              value={formData.password}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  password: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Department
+                        </Label>
+                        <Input
+                          value={formData.department}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              department: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={resetForm}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit">
+                          {editingAssistant
+                            ? "Update Profile"
+                            : "Create Account"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              }
             />
           </CardContent>
         </Card>

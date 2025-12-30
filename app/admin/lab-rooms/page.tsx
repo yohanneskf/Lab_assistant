@@ -234,124 +234,6 @@ export default function LabRoomsPage() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-10"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <div>
-          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Building2 className="h-8 w-8 text-primary" />
-            </div>
-            Lab Rooms
-          </h1>
-          <p className="text-muted-foreground mt-2 font-medium">
-            Manage laboratory spaces and facilities inventory.
-          </p>
-        </div>
-
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => setEditingRoom(null)}
-              size="lg"
-              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Add Room
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingRoom ? "Edit Lab Room" : "Create New Lab Room"}
-              </DialogTitle>
-              <DialogDescription>
-                Enter the details for the laboratory space.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="name"
-                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                  >
-                    Room Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="e.g., L-101 (Physics Lab)"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="capacity"
-                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                    >
-                      Capacity
-                    </Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      min="1"
-                      value={formData.capacity}
-                      onChange={(e) =>
-                        setFormData({ ...formData, capacity: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="location"
-                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                    >
-                      Building
-                    </Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) =>
-                        setFormData({ ...formData, location: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="equipment"
-                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                  >
-                    Equipment (comma-sep)
-                  </Label>
-                  <Input
-                    id="equipment"
-                    value={formData.equipment}
-                    onChange={(e) =>
-                      setFormData({ ...formData, equipment: e.target.value })
-                    }
-                    placeholder="Microscopes, Projector..."
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingRoom ? "Save Changes" : "Create Room"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/30 pb-6 border-b">
@@ -375,6 +257,127 @@ export default function LabRoomsPage() {
               data={labRooms}
               searchKey="name"
               searchPlaceholder="Search rooms..."
+              action={
+                <Dialog
+                  open={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      onClick={() => setEditingRoom(null)}
+                      size="sm"
+                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Room
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingRoom ? "Edit Lab Room" : "Create New Lab Room"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Enter the details for the laboratory space.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="name"
+                            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                          >
+                            Room Name
+                          </Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
+                            placeholder="e.g., L-101 (Physics Lab)"
+                            required
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="capacity"
+                              className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                            >
+                              Capacity
+                            </Label>
+                            <Input
+                              id="capacity"
+                              type="number"
+                              min="1"
+                              value={formData.capacity}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  capacity: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="location"
+                              className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                            >
+                              Building
+                            </Label>
+                            <Input
+                              id="location"
+                              value={formData.location}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  location: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="equipment"
+                            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                          >
+                            Equipment (comma-sep)
+                          </Label>
+                          <Input
+                            id="equipment"
+                            value={formData.equipment}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                equipment: e.target.value,
+                              })
+                            }
+                            placeholder="Microscopes, Projector..."
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={resetForm}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit">
+                          {editingRoom ? "Save Changes" : "Create Room"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              }
             />
           </CardContent>
         </Card>

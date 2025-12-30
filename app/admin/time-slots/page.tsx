@@ -308,136 +308,6 @@ export default function TimeSlotsPage() {
       animate={{ opacity: 1, scale: 1 }}
       className="space-y-10"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <div>
-          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Clock className="h-8 w-8 text-primary" />
-            </div>
-            Time Slots
-          </h1>
-          <p className="text-muted-foreground mt-2 font-medium">
-            Define reusable schedule blocks for the academic week.
-          </p>
-        </div>
-
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button
-              size="lg"
-              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Add Time Slot
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTimeSlot ? "Edit Slot" : "New Slot"}
-              </DialogTitle>
-              <DialogDescription>
-                Create a modular time block for resource allocation.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Day of Week
-                  </Label>
-                  <Select
-                    value={formData.dayOfWeek}
-                    onValueChange={(v: any) =>
-                      setFormData({ ...formData, dayOfWeek: v })
-                    }
-                  >
-                    <SelectTrigger className="rounded-lg h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {DAYS_OF_WEEK.map((day) => (
-                        <SelectItem key={day} value={day}>
-                          {day}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Slot Type
-                  </Label>
-                  <Select
-                    value={formData.slotType}
-                    onValueChange={(v: any) =>
-                      setFormData({ ...formData, slotType: v })
-                    }
-                  >
-                    <SelectTrigger className="rounded-lg h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="Lab">Lab Session</SelectItem>
-                      <SelectItem value="Lecture">Lecture</SelectItem>
-                      <SelectItem value="Tutorial">Tutorial</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Start Time
-                  </Label>
-                  <Input
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startTime: e.target.value })
-                    }
-                    className="h-10 rounded-lg"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    End Time
-                  </Label>
-                  <Input
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endTime: e.target.value })
-                    }
-                    className="h-10 rounded-lg"
-                    required
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingTimeSlot ? "Update Slot" : "Create Slot"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/30 pb-6 border-b">
@@ -461,6 +331,129 @@ export default function TimeSlotsPage() {
               data={timeSlots}
               searchKey="dayOfWeek"
               searchPlaceholder="Filter by day..."
+              action={
+                <Dialog
+                  open={isDialogOpen}
+                  onOpenChange={(open) => {
+                    setIsDialogOpen(open);
+                    if (!open) resetForm();
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Time Slot
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingTimeSlot ? "Edit Slot" : "New Slot"}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Create a modular time block for resource allocation.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Day of Week
+                          </Label>
+                          <Select
+                            value={formData.dayOfWeek}
+                            onValueChange={(v: any) =>
+                              setFormData({ ...formData, dayOfWeek: v })
+                            }
+                          >
+                            <SelectTrigger className="rounded-lg h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              {DAYS_OF_WEEK.map((day) => (
+                                <SelectItem key={day} value={day}>
+                                  {day}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Slot Type
+                          </Label>
+                          <Select
+                            value={formData.slotType}
+                            onValueChange={(v: any) =>
+                              setFormData({ ...formData, slotType: v })
+                            }
+                          >
+                            <SelectTrigger className="rounded-lg h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="Lab">Lab Session</SelectItem>
+                              <SelectItem value="Lecture">Lecture</SelectItem>
+                              <SelectItem value="Tutorial">Tutorial</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Start Time
+                          </Label>
+                          <Input
+                            type="time"
+                            value={formData.startTime}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                startTime: e.target.value,
+                              })
+                            }
+                            className="h-10 rounded-lg"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            End Time
+                          </Label>
+                          <Input
+                            type="time"
+                            value={formData.endTime}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                endTime: e.target.value,
+                              })
+                            }
+                            className="h-10 rounded-lg"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setIsDialogOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit">
+                          {editingTimeSlot ? "Update Slot" : "Create Slot"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              }
             />
           </CardContent>
         </Card>
