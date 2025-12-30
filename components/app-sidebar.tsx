@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Settings,
+  User,
 } from "lucide-react";
 
 import {
@@ -50,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserProfileDialog } from "@/components/user-profile-dialog";
 
 const data = {
   admin: [
@@ -125,6 +127,7 @@ export function AppSidebar({
   const { isMobile } = useSidebar();
   const user = AuthService.getCurrentUser();
   const navItems = data[role];
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
 
   const handleLogout = () => {
     AuthService.logout();
@@ -298,6 +301,14 @@ export function AppSidebar({
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-border" />
                     <DropdownMenuItem
+                      onClick={() => setIsProfileOpen(true)}
+                      className="cursor-pointer font-bold gap-2 p-3"
+                    >
+                      <User className="size-4" />
+                      My Account
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuItem
                       onClick={handleLogout}
                       className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer font-bold gap-2 p-3"
                     >
@@ -315,6 +326,11 @@ export function AppSidebar({
         </div>
       </SidebarFooter>
       <SidebarRail />
+      <UserProfileDialog
+        isOpen={isProfileOpen}
+        onClose={setIsProfileOpen}
+        user={user}
+      />
     </Sidebar>
   );
 }
