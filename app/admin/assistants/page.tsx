@@ -34,6 +34,8 @@ import {
   EyeOff,
   ShieldCheck,
   MoreHorizontal,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -67,6 +69,7 @@ const COLORS = [
 
 export default function AssistantsPage() {
   const [assistants, setAssistants] = useState<LabAssistant[]>([]);
+  const [viewMode, setViewMode] = useState<"both" | "table" | "graph">("both");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -326,14 +329,19 @@ export default function AssistantsPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
       className="h-auto lg:h-[calc(100vh-8.5rem)] flex flex-col gap-6"
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-full min-h-0">
-        <Card className="lg:col-span-2 border-none shadow-2xl glass lg:overflow-hidden flex flex-col h-fit lg:h-full">
-          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
-            <div className="flex items-center justify-between">
+        {(viewMode === "both" || viewMode === "table") && (
+          <Card
+            className={cn(
+              "border-none shadow-2xl glass lg:overflow-hidden flex flex-col h-fit lg:h-full transition-all duration-300",
+              viewMode === "table" ? "lg:col-span-3" : "lg:col-span-2"
+            )}
+          >
+            <CardHeader className="bg-muted/30 pb-6 border-b shrink-0 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
                   Staff Registry
@@ -342,249 +350,300 @@ export default function AssistantsPage() {
                   {assistants.length} accounts managed.
                 </CardDescription>
               </div>
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                {assistants.length}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    setViewMode(viewMode === "both" ? "table" : "both")
+                  }
+                  className="hidden lg:flex"
+                  title={viewMode === "both" ? "Expand Table" : "Restore View"}
+                >
+                  {viewMode === "both" ? (
+                    <Maximize2 className="h-4 w-4" />
+                  ) : (
+                    <Minimize2 className="h-4 w-4" />
+                  )}
+                </Button>
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                  {assistants.length}
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 flex-1 lg:overflow-y-auto">
-            <div className="p-6">
-              <DataTable
-                columns={columns}
-                data={assistants}
-                searchKey="username"
-                searchPlaceholder="Filter by username..."
-                action={
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button
-                        size="sm"
-                        className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Assistant
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[550px] rounded-2xl">
-                      <DialogHeader>
-                        <DialogTitle>
-                          {editingAssistant
-                            ? "Edit Assistant"
-                            : "Register Assistant"}
-                        </DialogTitle>
-                        <DialogDescription>
-                          Configure personal details and access permissions.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Internal ID
-                            </Label>
-                            <Input
-                              value={formData.labAssistantId}
-                              disabled
-                              className="bg-muted"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Username
-                            </Label>
-                            <Input
-                              value={formData.username}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  username: e.target.value,
-                                })
-                              }
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              First Name
-                            </Label>
-                            <Input
-                              value={formData.firstName}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  firstName: e.target.value,
-                                })
-                              }
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Last Name
-                            </Label>
-                            <Input
-                              value={formData.lastName}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  lastName: e.target.value,
-                                })
-                              }
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Email Address
-                          </Label>
-                          <Input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                email: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        {!editingAssistant && (
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Secure Password
-                            </Label>
-                            <div className="relative">
+            </CardHeader>
+            <CardContent className="p-0 flex-1 lg:overflow-y-auto">
+              <div className="p-6">
+                <DataTable
+                  columns={columns}
+                  data={assistants}
+                  searchKey="username"
+                  searchPlaceholder="Filter by username..."
+                  action={
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Assistant
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[550px] rounded-2xl">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingAssistant
+                              ? "Edit Assistant"
+                              : "Register Assistant"}
+                          </DialogTitle>
+                          <DialogDescription>
+                            Configure personal details and access permissions.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form
+                          onSubmit={handleSubmit}
+                          className="space-y-6 pt-4"
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Internal ID
+                              </Label>
                               <Input
-                                type={showPassword ? "text" : "password"}
-                                value={formData.password}
+                                value={formData.labAssistantId}
+                                disabled
+                                className="bg-muted"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Username
+                              </Label>
+                              <Input
+                                value={formData.username}
                                 onChange={(e) =>
                                   setFormData({
                                     ...formData,
-                                    password: e.target.value,
+                                    username: e.target.value,
                                   })
                                 }
                                 required
                               />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                                onClick={() => setShowPassword(!showPassword)}
-                              >
-                                {showPassword ? (
-                                  <EyeOff className="h-4 w-4" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                              </Button>
                             </div>
                           </div>
-                        )}
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Department
-                          </Label>
-                          <Input
-                            value={formData.department}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                department: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={resetForm}
-                          >
-                            Cancel
-                          </Button>
-                          <Button type="submit">
-                            {editingAssistant
-                              ? "Update Profile"
-                              : "Create Account"}
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                First Name
+                              </Label>
+                              <Input
+                                value={formData.firstName}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    firstName: e.target.value,
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Last Name
+                              </Label>
+                              <Input
+                                value={formData.lastName}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    lastName: e.target.value,
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Email Address
+                            </Label>
+                            <Input
+                              type="email"
+                              value={formData.email}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  email: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                          {!editingAssistant && (
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Secure Password
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  value={formData.password}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      password: e.target.value,
+                                    })
+                                  }
+                                  required
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Department
+                            </Label>
+                            <Input
+                              value={formData.department}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  department: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={resetForm}
+                            >
+                              Cancel
+                            </Button>
+                            <Button type="submit">
+                              {editingAssistant
+                                ? "Update Profile"
+                                : "Create Account"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="border-none shadow-2xl glass lg:overflow-hidden h-fit lg:h-full flex flex-col">
-          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
-            <CardTitle className="text-xl font-black">
-              Department Distribution
-            </CardTitle>
-            <CardDescription className="font-medium">
-              Staff allocation by area
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 flex-1 lg:overflow-y-auto">
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={departmentData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {departmentData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      borderRadius: "12px",
-                      border: "1px solid hsl(var(--border))",
-                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                    }}
-                  />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-6 space-y-4">
-              {departmentData.map((dept, index) => (
-                <div
-                  key={dept.name}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+        {(viewMode === "both" || viewMode === "graph") && (
+          <Card
+            className={cn(
+              "border-none shadow-2xl glass lg:overflow-hidden h-fit lg:h-full flex flex-col transition-all duration-300",
+              viewMode === "graph" ? "lg:col-span-3" : "lg:col-span-1"
+            )}
+          >
+            <CardHeader className="bg-muted/30 pb-6 border-b shrink-0 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PieChart className="h-5 w-5 text-primary" />
+                <div>
+                  <CardTitle className="text-xl font-black">
+                    Department Distribution
+                  </CardTitle>
+                  <CardDescription className="font-medium">
+                    Staff allocation by area
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setViewMode(viewMode === "both" ? "graph" : "both")
+                }
+                className="hidden lg:flex"
+                title={viewMode === "both" ? "Expand Graph" : "Restore View"}
+              >
+                {viewMode === "both" ? (
+                  <Maximize2 className="h-4 w-4" />
+                ) : (
+                  <Minimize2 className="h-4 w-4" />
+                )}
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 flex-1 lg:overflow-y-auto">
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={departmentData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {departmentData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        borderRadius: "12px",
+                        border: "1px solid hsl(var(--border))",
+                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                      }}
                     />
-                    <span className="text-sm font-bold uppercase tracking-wider">
-                      {dept.name}
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-6 space-y-4">
+                {departmentData.map((dept, index) => (
+                  <div
+                    key={dept.name}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor: COLORS[index % COLORS.length],
+                        }}
+                      />
+                      <span className="text-sm font-bold uppercase tracking-wider">
+                        {dept.name}
+                      </span>
+                    </div>
+                    <span className="font-black text-primary">
+                      {dept.value}
                     </span>
                   </div>
-                  <span className="font-black text-primary">{dept.value}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Dialog

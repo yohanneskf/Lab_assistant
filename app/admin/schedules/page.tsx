@@ -37,6 +37,8 @@ import {
   Calendar,
   AlertCircle,
   BarChart3,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -117,6 +119,7 @@ const COLORS = [
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<ScheduleAssignment[]>([]);
+  const [viewMode, setViewMode] = useState<"both" | "table" | "graph">("both");
   const [labRooms, setLabRooms] = useState<LabRoom[]>([]);
   const [assistants, setAssistants] = useState<LabAssistant[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -441,9 +444,14 @@ export default function SchedulesPage() {
       className="h-auto lg:h-[calc(100vh-8.5rem)] flex flex-col gap-6"
     >
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-auto lg:h-full min-h-0">
-        <Card className="lg:col-span-3 border-none shadow-2xl glass lg:overflow-hidden flex flex-col h-fit lg:h-full">
-          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
-            <div className="flex items-center justify-between">
+        {(viewMode === "both" || viewMode === "table") && (
+          <Card
+            className={cn(
+              "border-none shadow-2xl glass lg:overflow-hidden flex flex-col h-fit lg:h-full transition-all duration-300",
+              viewMode === "table" ? "lg:col-span-4" : "lg:col-span-3"
+            )}
+          >
+            <CardHeader className="bg-muted/30 pb-6 border-b shrink-0 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
                   Active Assignments
@@ -452,300 +460,347 @@ export default function SchedulesPage() {
                   Currently scheduled lab sessions.
                 </CardDescription>
               </div>
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                {schedules.filter((s) => s.status === "active").length}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    setViewMode(viewMode === "both" ? "table" : "both")
+                  }
+                  className="hidden lg:flex"
+                  title={viewMode === "both" ? "Expand Table" : "Restore View"}
+                >
+                  {viewMode === "both" ? (
+                    <Maximize2 className="h-4 w-4" />
+                  ) : (
+                    <Minimize2 className="h-4 w-4" />
+                  )}
+                </Button>
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                  {schedules.filter((s) => s.status === "active").length}
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 flex-1 lg:overflow-y-auto">
-            <div className="p-6">
-              <DataTable
-                columns={columns}
-                data={schedules.filter((s) => s.status === "active")}
-                searchKey="courseId"
-                searchPlaceholder="Search by course..."
-                action={
-                  <Dialog
-                    open={isDialogOpen}
-                    onOpenChange={(open) => {
-                      setIsDialogOpen(open);
-                      if (!open) resetForm();
-                    }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        disabled={!hasRequiredData}
-                        size="sm"
-                        className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        New Assignment
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] rounded-2xl">
-                      <DialogHeader>
-                        <DialogTitle>
-                          {editingSchedule
-                            ? "Edit Assignment"
-                            : "New Assignment"}
-                        </DialogTitle>
-                        <DialogDescription>
-                          Configure resources and time for a lab session.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                        <div className="grid gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Course
-                            </Label>
-                            <Select
-                              value={formData.courseId}
-                              onValueChange={(v) =>
-                                setFormData({ ...formData, courseId: v })
-                              }
-                            >
-                              <SelectTrigger className="rounded-lg h-10">
-                                <SelectValue placeholder="Select course" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {courses
-                                  .filter((c) => c.isActive)
-                                  .map((c) => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                      {c.code} - {c.name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
+            </CardHeader>
+            <CardContent className="p-0 flex-1 lg:overflow-y-auto">
+              <div className="p-6">
+                <DataTable
+                  columns={columns}
+                  data={schedules.filter((s) => s.status === "active")}
+                  searchKey="courseId"
+                  searchPlaceholder="Search by course..."
+                  action={
+                    <Dialog
+                      open={isDialogOpen}
+                      onOpenChange={(open) => {
+                        setIsDialogOpen(open);
+                        if (!open) resetForm();
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button
+                          disabled={!hasRequiredData}
+                          size="sm"
+                          className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          New Assignment
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingSchedule
+                              ? "Edit Assignment"
+                              : "New Assignment"}
+                          </DialogTitle>
+                          <DialogDescription>
+                            Configure resources and time for a lab session.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form
+                          onSubmit={handleSubmit}
+                          className="space-y-6 pt-4"
+                        >
+                          <div className="grid gap-4">
                             <div className="space-y-2">
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Section
+                                Course
                               </Label>
                               <Select
-                                value={formData.sectionId}
+                                value={formData.courseId}
                                 onValueChange={(v) =>
-                                  setFormData({
-                                    ...formData,
-                                    sectionId: v,
-                                    groupId: "",
-                                  })
+                                  setFormData({ ...formData, courseId: v })
                                 }
                               >
                                 <SelectTrigger className="rounded-lg h-10">
-                                  <SelectValue placeholder="Section" />
+                                  <SelectValue placeholder="Select course" />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl">
-                                  {sections
-                                    .filter((s) => s.isActive)
-                                    .map((s) => (
-                                      <SelectItem key={s.id} value={s.id}>
-                                        {s.name}
+                                  {courses
+                                    .filter((c) => c.isActive)
+                                    .map((c) => (
+                                      <SelectItem key={c.id} value={c.id}>
+                                        {c.code} - {c.name}
                                       </SelectItem>
                                     ))}
                                 </SelectContent>
                               </Select>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Section
+                                </Label>
+                                <Select
+                                  value={formData.sectionId}
+                                  onValueChange={(v) =>
+                                    setFormData({
+                                      ...formData,
+                                      sectionId: v,
+                                      groupId: "",
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="rounded-lg h-10">
+                                    <SelectValue placeholder="Section" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-xl">
+                                    {sections
+                                      .filter((s) => s.isActive)
+                                      .map((s) => (
+                                        <SelectItem key={s.id} value={s.id}>
+                                          {s.name}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Group
+                                </Label>
+                                <Select
+                                  value={formData.groupId}
+                                  onValueChange={(v) =>
+                                    setFormData({ ...formData, groupId: v })
+                                  }
+                                >
+                                  <SelectTrigger className="rounded-lg h-10">
+                                    <SelectValue placeholder="Group (Opt)" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-xl">
+                                    <SelectItem value="no-group">
+                                      Whole Section
+                                    </SelectItem>
+                                    {availableGroups.map((g) => (
+                                      <SelectItem key={g.id} value={g.id}>
+                                        {g.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
                             <div className="space-y-2">
                               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Group
+                                Lab Room
                               </Label>
                               <Select
-                                value={formData.groupId}
+                                value={formData.labRoomId}
                                 onValueChange={(v) =>
-                                  setFormData({ ...formData, groupId: v })
+                                  setFormData({ ...formData, labRoomId: v })
                                 }
                               >
                                 <SelectTrigger className="rounded-lg h-10">
-                                  <SelectValue placeholder="Group (Opt)" />
+                                  <SelectValue placeholder="Select lab room" />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl">
-                                  <SelectItem value="no-group">
-                                    Whole Section
-                                  </SelectItem>
-                                  {availableGroups.map((g) => (
-                                    <SelectItem key={g.id} value={g.id}>
-                                      {g.name}
-                                    </SelectItem>
-                                  ))}
+                                  {labRooms
+                                    .filter((r) => r.isActive)
+                                    .map((r) => (
+                                      <SelectItem key={r.id} value={r.id}>
+                                        {r.name} ({r.location})
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Assistant
+                              </Label>
+                              <Select
+                                value={formData.labAssistantId}
+                                onValueChange={(v) =>
+                                  setFormData({
+                                    ...formData,
+                                    labAssistantId: v,
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="rounded-lg h-10">
+                                  <SelectValue placeholder="Select assistant" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                  {assistants
+                                    .filter((a) => a.isActive)
+                                    .map((a) => (
+                                      <SelectItem
+                                        key={a.id}
+                                        value={a.labAssistantId}
+                                      >
+                                        {a.firstName} {a.lastName}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Time Slot
+                              </Label>
+                              <Select
+                                value={formData.timeSlotId}
+                                onValueChange={(v) =>
+                                  setFormData({ ...formData, timeSlotId: v })
+                                }
+                              >
+                                <SelectTrigger className="rounded-lg h-10">
+                                  <SelectValue placeholder="Select time slot" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                  {timeSlots
+                                    .filter((t) => t.isActive)
+                                    .map((t) => (
+                                      <SelectItem key={t.id} value={t.id}>
+                                        {t.dayOfWeek}: {formatTime(t.startTime)}{" "}
+                                        - {formatTime(t.endTime)}
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                               </Select>
                             </div>
                           </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Lab Room
-                            </Label>
-                            <Select
-                              value={formData.labRoomId}
-                              onValueChange={(v) =>
-                                setFormData({ ...formData, labRoomId: v })
-                              }
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => setIsDialogOpen(false)}
                             >
-                              <SelectTrigger className="rounded-lg h-10">
-                                <SelectValue placeholder="Select lab room" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {labRooms
-                                  .filter((r) => r.isActive)
-                                  .map((r) => (
-                                    <SelectItem key={r.id} value={r.id}>
-                                      {r.name} ({r.location})
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Assistant
-                            </Label>
-                            <Select
-                              value={formData.labAssistantId}
-                              onValueChange={(v) =>
-                                setFormData({ ...formData, labAssistantId: v })
-                              }
-                            >
-                              <SelectTrigger className="rounded-lg h-10">
-                                <SelectValue placeholder="Select assistant" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {assistants
-                                  .filter((a) => a.isActive)
-                                  .map((a) => (
-                                    <SelectItem
-                                      key={a.id}
-                                      value={a.labAssistantId}
-                                    >
-                                      {a.firstName} {a.lastName}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Time Slot
-                            </Label>
-                            <Select
-                              value={formData.timeSlotId}
-                              onValueChange={(v) =>
-                                setFormData({ ...formData, timeSlotId: v })
-                              }
-                            >
-                              <SelectTrigger className="rounded-lg h-10">
-                                <SelectValue placeholder="Select time slot" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                {timeSlots
-                                  .filter((t) => t.isActive)
-                                  .map((t) => (
-                                    <SelectItem key={t.id} value={t.id}>
-                                      {t.dayOfWeek}: {formatTime(t.startTime)} -{" "}
-                                      {formatTime(t.endTime)}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsDialogOpen(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button type="submit">
-                            {editingSchedule ? "Update" : "Create"}
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-2xl glass lg:overflow-hidden h-fit lg:h-full flex flex-col">
-          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl font-black">
-                Room Utilization
-              </CardTitle>
-            </div>
-            <CardDescription className="font-medium">
-              Active sessions per laboratory
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 flex-1 lg:overflow-y-auto">
-            <div className="h-[300px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={utilizationData} layout="vertical">
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    horizontal={false}
-                    stroke="hsl(var(--border))"
-                  />
-                  <XAxis type="number" hide />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    axisLine={false}
-                    tickLine={false}
-                    width={80}
-                    tick={{
-                      fontSize: 10,
-                      fontWeight: "bold",
-                      fill: "hsl(var(--muted-foreground))",
-                    }}
-                  />
-                  <RechartsTooltip
-                    cursor={{ fill: "transparent" }}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      borderRadius: "12px",
-                      border: "1px solid hsl(var(--border))",
-                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                    }}
-                  />
-                  <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
-                    {utilizationData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-muted-foreground uppercase">
-                  Top Laboratory
-                </span>
-                <span className="text-xs font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full">
-                  Busy
-                </span>
+                              Cancel
+                            </Button>
+                            <Button type="submit">
+                              {editingSchedule ? "Update" : "Create"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  }
+                />
               </div>
-              <p className="text-lg font-black text-foreground">
-                {utilizationData.sort((a, b) => b.count - a.count)[0]?.name ||
-                  "None"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        {(viewMode === "both" || viewMode === "graph") && (
+          <Card
+            className={cn(
+              "border-none shadow-2xl glass lg:overflow-hidden h-fit lg:h-full flex flex-col transition-all duration-300",
+              viewMode === "graph" ? "lg:col-span-4" : "lg:col-span-1"
+            )}
+          >
+            <CardHeader className="bg-muted/30 pb-6 border-b shrink-0 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <div>
+                  <CardTitle className="text-xl font-black">
+                    Room Utilization
+                  </CardTitle>
+                  <CardDescription className="font-medium">
+                    Active sessions per laboratory
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setViewMode(viewMode === "both" ? "graph" : "both")
+                }
+                className="hidden lg:flex"
+                title={viewMode === "both" ? "Expand Graph" : "Restore View"}
+              >
+                {viewMode === "both" ? (
+                  <Maximize2 className="h-4 w-4" />
+                ) : (
+                  <Minimize2 className="h-4 w-4" />
+                )}
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 flex-1 lg:overflow-y-auto">
+              <div className="h-[300px] w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={utilizationData} layout="vertical">
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      horizontal={false}
+                      stroke="hsl(var(--border))"
+                    />
+                    <XAxis type="number" hide />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      axisLine={false}
+                      tickLine={false}
+                      width={80}
+                      tick={{
+                        fontSize: 10,
+                        fontWeight: "bold",
+                        fill: "hsl(var(--muted-foreground))",
+                      }}
+                    />
+                    <RechartsTooltip
+                      cursor={{ fill: "transparent" }}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        borderRadius: "12px",
+                        border: "1px solid hsl(var(--border))",
+                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
+                      {utilizationData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-muted-foreground uppercase">
+                    Top Laboratory
+                  </span>
+                  <span className="text-xs font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full">
+                    Busy
+                  </span>
+                </div>
+                <p className="text-lg font-black text-foreground">
+                  {utilizationData.sort((a, b) => b.count - a.count)[0]?.name ||
+                    "None"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </motion.div>
   );
