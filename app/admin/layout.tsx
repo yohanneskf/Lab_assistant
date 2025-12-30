@@ -4,7 +4,12 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthService } from "@/lib/auth";
-import { AdminSidebar } from "@/components/admin-sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
@@ -50,24 +55,29 @@ export default function AdminLayout({
             >
               <Loader2 className="h-10 w-10 text-primary" />
             </motion.div>
-            <p className="text-sm font-medium text-muted-foreground animate-pulse">
-              Preparing your dashboard...
+            <p className="text-sm font-medium text-muted-foreground animate-pulse uppercase tracking-wider">
+              Initializing Admin Workspace...
             </p>
           </motion.div>
         ) : (
-          <div key="content" className="flex">
-            <AdminSidebar />
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex-1 lg:pl-72"
-            >
-              <main className="min-h-screen py-10 px-4 sm:px-8 lg:px-12 max-w-7xl mx-auto">
-                {children}
-              </main>
-            </motion.div>
-          </div>
+          <SidebarProvider key="content">
+            <AppSidebar role="admin" />
+            <SidebarInset className="relative flex min-h-screen flex-col">
+              <header className="flex h-16 shrink-0 items-center gap-2 px-4 transition-[width,height] ease-linear bg-background/50 backdrop-blur-md border-b sticky top-0 z-10 lg:hidden">
+                <SidebarTrigger className="-ml-1" />
+              </header>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="flex flex-col flex-1"
+              >
+                <main className="flex-1 py-8 px-4 sm:px-8 lg:px-12 w-full max-w-7xl mx-auto">
+                  {children}
+                </main>
+              </motion.div>
+            </SidebarInset>
+          </SidebarProvider>
         )}
       </AnimatePresence>
     </div>

@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,14 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
 import {
   Plus,
   Edit,
@@ -38,25 +33,17 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
+  MoreHorizontal,
 } from "lucide-react";
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
-};
+import { cn } from "@/lib/utils";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
 
 interface LabAssistant {
   id: string;
@@ -65,12 +52,18 @@ interface LabAssistant {
   firstName: string;
   lastName: string;
   email: string;
-  password?: string;
   department: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
+
+const COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ef4444",
+  "#06b6d4",
+];
 
 export default function AssistantsPage() {
   const [assistants, setAssistants] = useState<LabAssistant[]>([]);
@@ -114,6 +107,117 @@ export default function AssistantsPage() {
     }
   };
 
+  const departmentData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    assistants.forEach((a) => {
+      counts[a.department] = (counts[a.department] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [assistants]);
+
+  const columns: ColumnDef<LabAssistant>[] = [
+    {
+      accessorKey: "labAssistantId",
+      header: "Assistant",
+      cell: ({ row }) => {
+        const assistant = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary border border-primary/20">
+              {assistant.firstName[0]}
+              {assistant.lastName[0]}
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-foreground">
+                {assistant.firstName} {assistant.lastName}
+              </span>
+              <span className="text-[10px] font-bold text-primary tracking-widest uppercase">
+                {assistant.labAssistantId}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "username",
+      header: "Account Info",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-muted-foreground">
+            @{row.original.username}
+          </span>
+          <span className="text-xs text-muted-foreground/70">
+            {row.original.email}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "department",
+      header: "Department",
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="font-bold">
+          {row.original.department}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              "h-2 w-2 rounded-full",
+              row.original.isActive
+                ? "bg-emerald-500 animate-pulse"
+                : "bg-slate-300"
+            )}
+          />
+          <span className="text-xs font-black uppercase tracking-wider">
+            {row.original.isActive ? "Online" : "Offline"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEdit(row.original)}
+            className="h-8 w-8 text-primary hover:bg-primary/10"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setSelectedAssistant(row.original);
+              setIsPasswordDialogOpen(true);
+            }}
+            className="h-8 w-8 text-amber-500 hover:bg-amber-100/50"
+          >
+            <Key className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(row.original.id)}
+            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   const generateLabAssistantId = () => {
     const year = new Date().getFullYear();
     const existingIds = assistants
@@ -134,8 +238,6 @@ export default function AssistantsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const isCreating = !editingAssistant;
-
     const assistantData = {
       ...formData,
       labAssistantId: formData.labAssistantId || generateLabAssistantId(),
@@ -224,13 +326,12 @@ export default function AssistantsPage() {
 
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       className="space-y-10"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <motion.div variants={itemVariants}>
+        <div>
           <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <Users className="h-8 w-8 text-primary" />
@@ -240,147 +341,149 @@ export default function AssistantsPage() {
           <p className="text-muted-foreground mt-2 font-medium">
             Manage assistant credentials and department assignments.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div variants={itemVariants}>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                size="lg"
-                className="font-bold shadow-lg shadow-primary/20"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Add Assistant
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[550px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingAssistant ? "Edit Assistant" : "Register Assistant"}
-                </DialogTitle>
-                <DialogDescription>
-                  Configure personal details and access permissions.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Internal ID
-                    </Label>
-                    <Input value={formData.labAssistantId} disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Username
-                    </Label>
-                    <Input
-                      value={formData.username}
-                      onChange={(e) =>
-                        setFormData({ ...formData, username: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      First Name
-                    </Label>
-                    <Input
-                      value={formData.firstName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, firstName: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Last Name
-                    </Label>
-                    <Input
-                      value={formData.lastName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, lastName: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              size="lg"
+              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Add Assistant
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingAssistant ? "Edit Assistant" : "Register Assistant"}
+              </DialogTitle>
+              <DialogDescription>
+                Configure personal details and access permissions.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Internal ID
+                  </Label>
+                  <Input
+                    value={formData.labAssistantId}
+                    disabled
+                    className="bg-muted"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Email Address
+                    Username
                   </Label>
                   <Input
-                    type="email"
-                    value={formData.email}
+                    value={formData.username}
                     onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
+                      setFormData({ ...formData, username: e.target.value })
                     }
                     required
                   />
                 </div>
-                {!editingAssistant && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Secure Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={(e) =>
-                          setFormData({ ...formData, password: e.target.value })
-                        }
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Department
+                    First Name
                   </Label>
                   <Input
-                    value={formData.department}
+                    value={formData.firstName}
                     onChange={(e) =>
-                      setFormData({ ...formData, department: e.target.value })
+                      setFormData({ ...formData, firstName: e.target.value })
                     }
                     required
                   />
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingAssistant ? "Update Profile" : "Create Account"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </motion.div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Last Name
+                  </Label>
+                  <Input
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Email Address
+                </Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              {!editingAssistant && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Secure Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Department
+                </Label>
+                <Input
+                  value={formData.department}
+                  onChange={(e) =>
+                    setFormData({ ...formData, department: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={resetForm}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingAssistant ? "Update Profile" : "Create Account"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <motion.div variants={itemVariants}>
-        <Card className="border-none shadow-2xl glass overflow-hidden">
-          <CardHeader className="bg-muted/30 pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -395,118 +498,85 @@ export default function AssistantsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Assistant</TableHead>
-                    <TableHead>Account Info</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <AnimatePresence mode="popLayout">
-                    {assistants.map((assistant) => (
-                      <TableRow
-                        key={assistant.id}
-                        className="group transition-colors"
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary border border-primary/20">
-                              {assistant.firstName[0]}
-                              {assistant.lastName[0]}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-black text-foreground">
-                                {assistant.firstName} {assistant.lastName}
-                              </span>
-                              <span className="text-[10px] font-bold text-primary tracking-widest uppercase">
-                                {assistant.labAssistantId}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-bold text-muted-foreground">
-                              @{assistant.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground/70">
-                              {assistant.email}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="font-bold">
-                            {assistant.department}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={cn(
-                                "h-2 w-2 rounded-full",
-                                assistant.isActive
-                                  ? "bg-emerald-500 animate-pulse"
-                                  : "bg-slate-300"
-                              )}
-                            />
-                            <span className="text-xs font-black uppercase tracking-wider">
-                              {assistant.isActive ? "Online" : "Offline"}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(assistant)}
-                              className="h-8 w-8 text-primary hover:bg-primary/10"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedAssistant(assistant);
-                                setIsPasswordDialogOpen(true);
-                              }}
-                              className="h-8 w-8 text-amber-500 hover:bg-amber-100/50"
-                            >
-                              <Key className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(assistant.id)}
-                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+          <CardContent className="p-6 flex-1">
+            <DataTable
+              columns={columns}
+              data={assistants}
+              searchKey="username"
+              searchPlaceholder="Filter by username..."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
+            <CardTitle className="text-xl font-black">
+              Department Distribution
+            </CardTitle>
+            <CardDescription className="font-medium">
+              Staff allocation by area
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={departmentData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {departmentData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
-                  </AnimatePresence>
-                </TableBody>
-              </Table>
+                  </Pie>
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderRadius: "12px",
+                      border: "1px solid hsl(var(--border))",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-6 space-y-4">
+              {departmentData.map((dept, index) => (
+                <div
+                  key={dept.name}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
+                    <span className="text-sm font-bold uppercase tracking-wider">
+                      {dept.name}
+                    </span>
+                  </div>
+                  <span className="font-black text-primary">{dept.value}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
-      {/* Password Dialog */}
       <Dialog
         open={isPasswordDialogOpen}
         onOpenChange={setIsPasswordDialogOpen}
       >
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[400px] rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-amber-500" /> Reset Password
@@ -555,7 +625,7 @@ export default function AssistantsPage() {
                   passwordData.newPassword !== passwordData.confirmPassword ||
                   !passwordData.newPassword
                 }
-                className="w-full bg-amber-500 hover:bg-amber-600"
+                className="w-full bg-amber-500 hover:bg-amber-600 h-11 rounded-xl font-bold"
               >
                 Update Credentials
               </Button>

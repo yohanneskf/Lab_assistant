@@ -4,6 +4,12 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthService } from "@/lib/auth";
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
@@ -44,20 +50,29 @@ export default function AssistantLayout({
             >
               <Loader2 className="h-10 w-10 text-green-600" />
             </motion.div>
-            <p className="text-sm font-medium text-muted-foreground animate-pulse">
-              Loading your portal...
+            <p className="text-sm font-medium text-muted-foreground animate-pulse uppercase tracking-wider">
+              Accessing Assistant Portal...
             </p>
           </motion.div>
         ) : (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-7xl mx-auto"
-          >
-            <main className="py-10 px-4 sm:px-8 lg:px-12">{children}</main>
-          </motion.div>
+          <SidebarProvider key="content">
+            <AppSidebar role="assistant" />
+            <SidebarInset className="relative flex min-h-screen flex-col">
+              <header className="flex h-16 shrink-0 items-center gap-2 px-4 transition-[width,height] ease-linear bg-background/50 backdrop-blur-md border-b sticky top-0 z-10 lg:hidden">
+                <SidebarTrigger className="-ml-1" />
+              </header>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="flex flex-col flex-1"
+              >
+                <main className="flex-1 py-8 px-4 sm:px-8 lg:px-12 w-full max-w-7xl mx-auto">
+                  {children}
+                </main>
+              </motion.div>
+            </SidebarInset>
+          </SidebarProvider>
         )}
       </AnimatePresence>
     </div>

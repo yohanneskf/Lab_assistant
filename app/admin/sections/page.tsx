@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,14 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -36,26 +29,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Users, LayoutGrid } from "lucide-react";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { Plus, Edit, Trash2, Users, LayoutGrid, PieChart } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      duration: 0.5,
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
-};
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 interface Group {
   id: string;
@@ -110,6 +97,115 @@ export default function SectionsPage() {
       setIsLoading(false);
     }
   };
+
+  const chartData = useMemo(() => {
+    return sections.map((s) => {
+      const groupTotal = s.groups.reduce((acc, g) => acc + g.capacity, 0);
+      return {
+        name: s.name,
+        Section: s.capacity,
+        Groups: groupTotal,
+      };
+    });
+  }, [sections]);
+
+  const columns: ColumnDef<Section>[] = [
+    {
+      accessorKey: "name",
+      header: "Section Name",
+      cell: ({ row }) => (
+        <span className="font-black text-foreground">{row.original.name}</span>
+      ),
+    },
+    {
+      accessorKey: "year",
+      header: "Year",
+      cell: ({ row }) => (
+        <Badge
+          className={cn("font-bold px-2", getYearColor(row.original.year))}
+        >
+          Year {row.original.year}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "department",
+      header: "Department",
+      cell: ({ row }) => (
+        <span className="font-medium text-muted-foreground">
+          {row.original.department}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "capacity",
+      header: () => <div className="text-center">Capacity</div>,
+      cell: ({ row }) => (
+        <div className="text-center">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/5 text-primary font-black">
+            {row.original.capacity}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "groups",
+      header: "Groups Division",
+      cell: ({ row }) => (
+        <div className="flex flex-wrap items-center gap-1.5 min-w-[200px]">
+          {row.original.groups.map((group) => (
+            <Badge
+              key={group.id}
+              className="bg-primary/5 text-primary border-primary/10 font-bold group/badge h-7 flex items-center"
+            >
+              {group.name} ({group.capacity})
+              <button
+                onClick={() => handleDeleteGroup(group.id)}
+                className="ml-1.5 opacity-0 group-hover:opacity-100 group-hover/badge:text-destructive transition-all"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setSelectedSectionId(row.original.id);
+              setIsGroupDialogOpen(true);
+            }}
+            className="h-7 px-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 border border-dashed border-primary/30"
+          >
+            <Plus className="h-3 w-3 mr-1" /> Add Group
+          </Button>
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEdit(row.original)}
+            className="h-8 w-8 text-primary hover:bg-primary/10"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(row.original.id)}
+            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,13 +317,12 @@ export default function SectionsPage() {
 
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
       className="space-y-10"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <motion.div variants={itemVariants}>
+        <div>
           <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <Users className="h-8 w-8 text-primary" />
@@ -237,110 +332,107 @@ export default function SectionsPage() {
           <p className="text-muted-foreground mt-2 font-medium">
             Divide academic years into sections and student groups.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div variants={itemVariants}>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                size="lg"
-                className="font-bold shadow-lg shadow-primary/20"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Add Section
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingSection ? "Edit Section" : "New Section"}
-                </DialogTitle>
-                <DialogDescription>
-                  Define academic cohort and total capacity.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              size="lg"
+              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Add Section
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSection ? "Edit Section" : "New Section"}
+              </DialogTitle>
+              <DialogDescription>
+                Define academic cohort and total capacity.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Section Name
+                </Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="e.g., Section A"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Section Name
+                    Year Level
                   </Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="e.g., Section A"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Year Level
-                    </Label>
-                    <Select
-                      value={formData.year}
-                      onValueChange={(v) =>
-                        setFormData({ ...formData, year: v })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5].map((y) => (
-                          <SelectItem key={y} value={y.toString()}>
-                            {y}st Year
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Max Capacity
-                    </Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={formData.capacity}
-                      onChange={(e) =>
-                        setFormData({ ...formData, capacity: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
+                  <Select
+                    value={formData.year}
+                    onValueChange={(v) => setFormData({ ...formData, year: v })}
+                  >
+                    <SelectTrigger className="rounded-lg h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {[1, 2, 3, 4, 5].map((y) => (
+                        <SelectItem key={y} value={y.toString()}>
+                          {y}st Year
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Department
+                    Max Capacity
                   </Label>
                   <Input
-                    value={formData.department}
+                    type="number"
+                    min="1"
+                    value={formData.capacity}
                     onChange={(e) =>
-                      setFormData({ ...formData, department: e.target.value })
+                      setFormData({ ...formData, capacity: e.target.value })
                     }
-                    placeholder="e.g., Computer Science"
+                    className="h-10 rounded-lg"
                     required
                   />
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingSection ? "Update Section" : "Create Section"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </motion.div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Department
+                </Label>
+                <Input
+                  value={formData.department}
+                  onChange={(e) =>
+                    setFormData({ ...formData, department: e.target.value })
+                  }
+                  placeholder="e.g., Computer Science"
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={resetForm}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingSection ? "Update Section" : "Create Section"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <motion.div variants={itemVariants}>
-        <Card className="border-none shadow-2xl glass overflow-hidden">
-          <CardHeader className="bg-muted/30 pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -355,109 +447,89 @@ export default function SectionsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Section Name</TableHead>
-                    <TableHead>Year</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead className="text-center">Capacity</TableHead>
-                    <TableHead className="w-[40%]">Groups Division</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <AnimatePresence mode="popLayout">
-                    {sections.map((section) => (
-                      <TableRow
-                        key={section.id}
-                        className="group transition-colors"
-                      >
-                        <TableCell className="font-black text-foreground">
-                          {section.name}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={cn(
-                              "font-bold px-2",
-                              getYearColor(section.year)
-                            )}
-                          >
-                            Year {section.year}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium text-muted-foreground">
-                          {section.department}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/5 text-primary font-bold">
-                            {section.capacity}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {section.groups.map((group) => (
-                              <Badge
-                                key={group.id}
-                                className="bg-primary/10 text-primary border-primary/20 font-bold group/badge"
-                              >
-                                {group.name} ({group.capacity})
-                                <button
-                                  onClick={() => handleDeleteGroup(group.id)}
-                                  className="ml-1.5 opacity-0 group-hover:opacity-100 group-hover/badge:text-destructive transition-all"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            ))}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setSelectedSectionId(section.id);
-                                setIsGroupDialogOpen(true);
-                              }}
-                              className="h-7 px-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 border border-dashed border-primary/30"
-                            >
-                              <Plus className="h-3 w-3 mr-1" /> Add Group
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(section)}
-                              className="h-8 w-8 text-primary hover:bg-primary/10"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(section.id)}
-                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </AnimatePresence>
-                </TableBody>
-              </Table>
+          <CardContent className="p-6 flex-1">
+            <DataTable
+              columns={columns}
+              data={sections}
+              searchKey="name"
+              searchPlaceholder="Filter by section..."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
+            <div className="flex items-center gap-2">
+              <PieChart className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl font-black">
+                Capacity Allocation
+              </CardTitle>
+            </div>
+            <CardDescription className="font-medium">
+              Section vs Sub-group Capacity
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fontSize: 10,
+                      fontWeight: "bold",
+                      fill: "hsl(var(--muted-foreground))",
+                    }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fontSize: 10,
+                      fontWeight: "bold",
+                      fill: "hsl(var(--muted-foreground))",
+                    }}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderRadius: "12px",
+                      border: "1px solid hsl(var(--border))",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                  <Legend iconType="circle" />
+                  <Bar
+                    dataKey="Section"
+                    fill="hsl(var(--primary))"
+                    radius={[4, 4, 0, 0]}
+                    barSize={20}
+                  />
+                  <Bar
+                    dataKey="Groups"
+                    fill="hsl(var(--muted-foreground))"
+                    radius={[4, 4, 0, 0]}
+                    barSize={20}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
-      {/* Group Dialog */}
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <LayoutGrid className="h-5 w-5 text-primary" /> Create Group
@@ -477,6 +549,7 @@ export default function SectionsPage() {
                   setGroupFormData({ ...groupFormData, name: e.target.value })
                 }
                 placeholder="e.g., Group 1"
+                className="h-10 rounded-lg"
                 required
               />
             </div>
@@ -495,11 +568,15 @@ export default function SectionsPage() {
                   })
                 }
                 placeholder="15"
+                className="h-10 rounded-lg"
                 required
               />
             </div>
             <DialogFooter>
-              <Button type="submit" className="w-full">
+              <Button
+                type="submit"
+                className="w-full h-10 rounded-xl font-bold"
+              >
                 Initialize Group
               </Button>
             </DialogFooter>

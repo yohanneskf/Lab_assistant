@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -22,40 +22,33 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Calendar, AlertCircle } from "lucide-react";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  AlertCircle,
+  BarChart3,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
-};
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 interface ScheduleAssignment {
   id: string;
@@ -67,55 +60,60 @@ interface ScheduleAssignment {
   timeSlotId: string;
   status: "active" | "inactive";
 }
-// ... [interface definitions remain the same]
+
 interface LabRoom {
   id: string;
   name: string;
   capacity: number;
   location: string;
   isActive: boolean;
-  equipment: string[];
 }
+
 interface LabAssistant {
   id: string;
   labAssistantId: string;
   firstName: string;
   lastName: string;
-  email: string;
   isActive: boolean;
 }
+
 interface TimeSlot {
   id: string;
   dayOfWeek: string;
   startTime: string;
   endTime: string;
-  slotType: string;
   isActive: boolean;
 }
+
 interface Course {
   id: string;
   code: string;
   name: string;
-  department: string;
-  year: number;
-  credits: number;
   isActive: boolean;
 }
+
 interface Section {
   id: string;
   name: string;
-  year: number;
-  department: string;
-  capacity: number;
   isActive: boolean;
 }
+
 interface Group {
   id: string;
   name: string;
   sectionId: string;
-  capacity: number;
   isActive: boolean;
 }
+
+const COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ef4444",
+  "#06b6d4",
+  "#ec4899",
+];
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<ScheduleAssignment[]>([]);
@@ -195,6 +193,134 @@ export default function SchedulesPage() {
     }
   };
 
+  const utilizationData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    labRooms.forEach((room) => (counts[room.name] = 0));
+    schedules
+      .filter((s) => s.status === "active")
+      .forEach((s) => {
+        const room = labRooms.find((r) => r.id === s.labRoomId);
+        if (room) counts[room.name]++;
+      });
+    return Object.entries(counts).map(([name, count]) => ({ name, count }));
+  }, [schedules, labRooms]);
+
+  const columns: ColumnDef<ScheduleAssignment>[] = [
+    {
+      accessorKey: "courseId",
+      header: "Course",
+      cell: ({ row }) => {
+        const course = courses.find((c) => c.id === row.original.courseId);
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold text-foreground">
+              {course?.code || "N/A"}
+            </span>
+            <span className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">
+              {course?.name}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "sectionId",
+      header: "Target",
+      cell: ({ row }) => {
+        const section = sections.find((s) => s.id === row.original.sectionId);
+        const group = groups.find((g) => g.id === row.original.groupId);
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-bold">{section?.name || "N/A"}</span>
+            {group && (
+              <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-black uppercase tracking-tighter">
+                {group.name}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "labRoomId",
+      header: "Location",
+      cell: ({ row }) => {
+        const room = labRooms.find((r) => r.id === row.original.labRoomId);
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold">{room?.name || "N/A"}</span>
+            <span className="text-xs text-muted-foreground font-medium">
+              {room?.location}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "labAssistantId",
+      header: "Assistant",
+      cell: ({ row }) => {
+        const assistant = assistants.find(
+          (a) => a.labAssistantId === row.original.labAssistantId
+        );
+        return (
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs text-primary">
+              {assistant?.firstName?.[0]}
+              {assistant?.lastName?.[0]}
+            </div>
+            <span className="font-bold text-sm">
+              {assistant
+                ? `${assistant.firstName} ${assistant.lastName}`
+                : "N/A"}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "timeSlotId",
+      header: "Schedule",
+      cell: ({ row }) => {
+        const slot = timeSlots.find((t) => t.id === row.original.timeSlotId);
+        return slot ? (
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">{slot.dayOfWeek}</span>
+            <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+              {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+            </span>
+          </div>
+        ) : (
+          "N/A"
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEdit(row.original)}
+            className="h-8 w-8 text-primary hover:bg-primary/10"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(row.original.id)}
+            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -221,7 +347,10 @@ export default function SchedulesPage() {
     const scheduleData = {
       ...formData,
       status: "active",
-      groupId: formData.groupId === "no-group" ? null : formData.groupId,
+      groupId:
+        formData.groupId === "no-group" || !formData.groupId
+          ? null
+          : formData.groupId,
     };
 
     try {
@@ -286,26 +415,12 @@ export default function SchedulesPage() {
     setEditingSchedule(null);
   };
 
-  const handleDialogChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) resetForm();
-  };
-
-  const getLabRoom = (id: string) => labRooms.find((room) => room.id === id);
-  const getAssistant = (labAssistantId: string) =>
-    assistants.find((assistant) => assistant.labAssistantId === labAssistantId);
-  const getTimeSlot = (id: string) => timeSlots.find((slot) => slot.id === id);
-  const getSection = (id: string) =>
-    sections.find((section) => section.id === id);
-  const getGroup = (id: string) => groups.find((group) => group.id === id);
-  const getCourse = (id: string) => courses.find((course) => course.id === id);
-
   const formatTime = (time: string) => {
+    if (!time) return "";
     const [hours, minutes] = time.split(":");
     const hour = parseInt(hours);
     const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes.padStart(2, "0")} ${ampm}`;
+    return `${hour % 12 || 12}:${minutes.padStart(2, "0")} ${ampm}`;
   };
 
   const availableGroups = formData.sectionId
@@ -321,13 +436,12 @@ export default function SchedulesPage() {
 
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-      className="space-y-8 max-w-7xl mx-auto"
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="space-y-10"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <motion.div variants={itemVariants}>
+        <div>
           <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <Calendar className="h-8 w-8 text-primary" />
@@ -337,237 +451,211 @@ export default function SchedulesPage() {
           <p className="text-muted-foreground mt-2 font-medium">
             Manage and assign lab resources to academic sessions.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div variants={itemVariants}>
-          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-            <DialogTrigger asChild>
-              <Button
-                disabled={!hasRequiredData}
-                size="lg"
-                className="font-bold shadow-lg shadow-primary/20"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                New Assignment
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingSchedule ? "Edit Assignment" : "New Assignment"}
-                </DialogTitle>
-                <DialogDescription>
-                  Configure resources and time for a lab session.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Course
-                    </Label>
-                    <Select
-                      value={formData.courseId}
-                      onValueChange={(v) =>
-                        setFormData({ ...formData, courseId: v })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select course" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {courses
-                          .filter((c) => c.isActive)
-                          .map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.code} - {c.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Section
-                      </Label>
-                      <Select
-                        value={formData.sectionId}
-                        onValueChange={(v) =>
-                          setFormData({
-                            ...formData,
-                            sectionId: v,
-                            groupId: "",
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Section" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sections
-                            .filter((s) => s.isActive)
-                            .map((s) => (
-                              <SelectItem key={s.id} value={s.id}>
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Group
-                      </Label>
-                      <Select
-                        value={formData.groupId}
-                        onValueChange={(v) =>
-                          setFormData({ ...formData, groupId: v })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Group (Opt)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="no-group">
-                            Whole Section
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button
+              disabled={!hasRequiredData}
+              size="lg"
+              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              New Assignment
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSchedule ? "Edit Assignment" : "New Assignment"}
+              </DialogTitle>
+              <DialogDescription>
+                Configure resources and time for a lab session.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Course
+                  </Label>
+                  <Select
+                    value={formData.courseId}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, courseId: v })
+                    }
+                  >
+                    <SelectTrigger className="rounded-lg h-10">
+                      <SelectValue placeholder="Select course" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {courses
+                        .filter((c) => c.isActive)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.code} - {c.name}
                           </SelectItem>
-                          {availableGroups.map((g) => (
-                            <SelectItem key={g.id} value={g.id}>
-                              {g.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Lab Room
+                      Section
                     </Label>
                     <Select
-                      value={formData.labRoomId}
+                      value={formData.sectionId}
                       onValueChange={(v) =>
-                        setFormData({ ...formData, labRoomId: v })
+                        setFormData({ ...formData, sectionId: v, groupId: "" })
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select lab room" />
+                      <SelectTrigger className="rounded-lg h-10">
+                        <SelectValue placeholder="Section" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {labRooms
-                          .filter((r) => r.isActive)
-                          .map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.name} ({r.location})
+                      <SelectContent className="rounded-xl">
+                        {sections
+                          .filter((s) => s.isActive)
+                          .map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.name}
                             </SelectItem>
                           ))}
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Assistant
+                      Group
                     </Label>
                     <Select
-                      value={formData.labAssistantId}
+                      value={formData.groupId}
                       onValueChange={(v) =>
-                        setFormData({ ...formData, labAssistantId: v })
+                        setFormData({ ...formData, groupId: v })
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select assistant" />
+                      <SelectTrigger className="rounded-lg h-10">
+                        <SelectValue placeholder="Group (Opt)" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {assistants
-                          .filter((a) => a.isActive)
-                          .map((a) => (
-                            <SelectItem key={a.id} value={a.labAssistantId}>
-                              {a.firstName} {a.lastName}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Time Slot
-                    </Label>
-                    <Select
-                      value={formData.timeSlotId}
-                      onValueChange={(v) =>
-                        setFormData({ ...formData, timeSlotId: v })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time slot" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {timeSlots
-                          .filter((t) => t.isActive)
-                          .map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.dayOfWeek}: {formatTime(t.startTime)} -{" "}
-                              {formatTime(t.endTime)}
-                            </SelectItem>
-                          ))}
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="no-group">Whole Section</SelectItem>
+                        {availableGroups.map((g) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            {g.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setIsDialogOpen(false)}
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Lab Room
+                  </Label>
+                  <Select
+                    value={formData.labRoomId}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, labRoomId: v })
+                    }
                   >
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingSchedule ? "Update" : "Create"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </motion.div>
+                    <SelectTrigger className="rounded-lg h-10">
+                      <SelectValue placeholder="Select lab room" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {labRooms
+                        .filter((r) => r.isActive)
+                        .map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.name} ({r.location})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Assistant
+                  </Label>
+                  <Select
+                    value={formData.labAssistantId}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, labAssistantId: v })
+                    }
+                  >
+                    <SelectTrigger className="rounded-lg h-10">
+                      <SelectValue placeholder="Select assistant" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {assistants
+                        .filter((a) => a.isActive)
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.labAssistantId}>
+                            {a.firstName} {a.lastName}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Time Slot
+                  </Label>
+                  <Select
+                    value={formData.timeSlotId}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, timeSlotId: v })
+                    }
+                  >
+                    <SelectTrigger className="rounded-lg h-10">
+                      <SelectValue placeholder="Select time slot" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {timeSlots
+                        .filter((t) => t.isActive)
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.dayOfWeek}: {formatTime(t.startTime)} -{" "}
+                            {formatTime(t.endTime)}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingSchedule ? "Update" : "Create"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <AnimatePresence>
-        {!hasRequiredData && !isLoading && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-          >
-            <Card className="border-orange-500/20 bg-orange-500/5 shadow-none">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4 text-orange-600">
-                  <div className="p-2 bg-orange-600/10 rounded-lg">
-                    <AlertCircle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-bold">Setup Required</p>
-                    <p className="text-sm opacity-90">
-                      Ensure you have active courses, lab rooms, sections,
-                      assistants, and time slots configured before creating
-                      assignments.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!hasRequiredData && !isLoading && (
+        <AlertCircle className="h-5 w-5 text-orange-600" />
+      )}
 
-      <motion.div variants={itemVariants}>
-        <Card className="border-none shadow-2xl glass overflow-hidden">
-          <CardHeader className="bg-muted/30 pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <Card className="lg:col-span-3 border-none shadow-2xl glass overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -582,129 +670,87 @@ export default function SchedulesPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Course</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Assistant</TableHead>
-                    <TableHead>Schedule</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {schedules
-                    .filter((s) => s.status === "active")
-                    .map((schedule) => {
-                      const course = getCourse(schedule.courseId);
-                      const section = getSection(schedule.sectionId);
-                      const group = schedule.groupId
-                        ? getGroup(schedule.groupId)
-                        : null;
-                      const labRoom = getLabRoom(schedule.labRoomId);
-                      const assistant = getAssistant(schedule.labAssistantId);
-                      const timeSlot = getTimeSlot(schedule.timeSlotId);
-
-                      return (
-                        <TableRow
-                          key={schedule.id}
-                          className="group transition-colors"
-                        >
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-foreground">
-                                {course?.code}
-                              </span>
-                              <span className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">
-                                {course?.name}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold">{section?.name}</span>
-                              {group && (
-                                <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">
-                                  {group.name}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-bold">{labRoom?.name}</span>
-                              <span className="text-xs text-muted-foreground font-medium">
-                                {labRoom?.location}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-bold text-xs">
-                                {assistant?.firstName[0]}
-                                {assistant?.lastName[0]}
-                              </div>
-                              <span className="font-bold text-sm">
-                                {assistant?.firstName} {assistant?.lastName}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {timeSlot && (
-                              <div className="flex flex-col">
-                                <span className="font-bold text-sm">
-                                  {timeSlot.dayOfWeek}
-                                </span>
-                                <span className="text-xs text-muted-foreground font-medium">
-                                  {formatTime(timeSlot.startTime)} -{" "}
-                                  {formatTime(timeSlot.endTime)}
-                                </span>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(schedule)}
-                                className="h-8 w-8 text-primary hover:bg-primary/10"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(schedule.id)}
-                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                </TableBody>
-              </Table>
-            </div>
-            {schedules.filter((s) => s.status === "active").length === 0 && (
-              <div className="p-12 text-center">
-                <Calendar className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-                <p className="text-muted-foreground font-medium text-lg">
-                  No assignments found.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Click "New Assignment" to get started.
-                </p>
-              </div>
-            )}
+          <CardContent className="p-6 flex-1">
+            <DataTable
+              columns={columns}
+              data={schedules.filter((s) => s.status === "active")}
+              searchKey="courseId"
+              searchPlaceholder="Search by course..."
+            />
           </CardContent>
         </Card>
-      </motion.div>
+
+        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl font-black">
+                Room Utilization
+              </CardTitle>
+            </div>
+            <CardDescription className="font-medium">
+              Active sessions per laboratory
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-[300px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={utilizationData} layout="vertical">
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    axisLine={false}
+                    tickLine={false}
+                    width={80}
+                    tick={{
+                      fontSize: 10,
+                      fontWeight: "bold",
+                      fill: "hsl(var(--muted-foreground))",
+                    }}
+                  />
+                  <RechartsTooltip
+                    cursor={{ fill: "transparent" }}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderRadius: "12px",
+                      border: "1px solid hsl(var(--border))",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
+                    {utilizationData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-muted-foreground uppercase">
+                  Top Laboratory
+                </span>
+                <span className="text-xs font-black text-primary px-2 py-0.5 bg-primary/10 rounded-full">
+                  Busy
+                </span>
+              </div>
+              <p className="text-lg font-black text-foreground">
+                {utilizationData.sort((a, b) => b.count - a.count)[0]?.name ||
+                  "None"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </motion.div>
   );
 }

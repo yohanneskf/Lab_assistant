@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,39 +23,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
-};
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { Plus, Edit, Trash2, BookOpen, BarChart } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+} from "recharts";
 
 interface Course {
   id: string;
@@ -67,8 +54,6 @@ interface Course {
   batch: string;
   studentType: "regular" | "extension";
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export default function CoursesPage() {
@@ -103,6 +88,129 @@ export default function CoursesPage() {
       setIsLoading(false);
     }
   };
+
+  const yearData = useMemo(() => {
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    courses.forEach((c) => {
+      if (counts[c.year] !== undefined) counts[c.year]++;
+    });
+    return Object.entries(counts).map(([year, count]) => ({
+      subject: `Year ${year}`,
+      A: count,
+      fullMark: Math.max(...Object.values(counts), 5),
+    }));
+  }, [courses]);
+
+  const getYearColor = (year: number) => {
+    switch (year) {
+      case 1:
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case 2:
+        return "bg-blue-100 text-blue-700 border-blue-200";
+      case 3:
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      case 4:
+        return "bg-orange-100 text-orange-700 border-orange-200";
+      case 5:
+        return "bg-purple-100 text-purple-700 border-purple-200";
+      default:
+        return "bg-slate-100 text-slate-700 border-slate-200";
+    }
+  };
+
+  const columns: ColumnDef<Course>[] = [
+    {
+      accessorKey: "code",
+      header: "Code & Name",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-primary text-[10px] tracking-widest uppercase mb-0.5">
+            {row.original.code}
+          </span>
+          <span className="font-bold text-foreground leading-tight">
+            {row.original.name}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "department",
+      header: "Department",
+      cell: ({ row }) => (
+        <span className="font-medium text-muted-foreground">
+          {row.original.department}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "year",
+      header: "Structure",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Badge
+            className={cn(
+              "font-bold px-2 py-0",
+              getYearColor(row.original.year)
+            )}
+          >
+            Year {row.original.year}
+          </Badge>
+          <span className="text-xs font-black text-muted-foreground/70 uppercase tracking-tighter">
+            Sec {row.original.section}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "studentType",
+      header: "Type",
+      cell: ({ row }) => (
+        <Badge
+          variant={
+            row.original.studentType === "regular" ? "default" : "outline"
+          }
+          className="capitalize font-bold text-[10px]"
+        >
+          {row.original.studentType}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "credits",
+      header: () => <div className="text-center">Credits</div>,
+      cell: ({ row }) => (
+        <div className="text-center">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/5 text-primary font-black">
+            {row.original.credits}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEdit(row.original)}
+            className="h-8 w-8 text-primary hover:bg-primary/10"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(row.original.id)}
+            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,7 +253,7 @@ export default function CoursesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this course?")) {
+    if (confirm("Permanently remove this course from the catalog?")) {
       try {
         await fetch(`/api/courses/${id}`, { method: "DELETE" });
         loadCourses();
@@ -170,32 +278,14 @@ export default function CoursesPage() {
     setIsDialogOpen(false);
   };
 
-  const getYearColor = (year: number) => {
-    switch (year) {
-      case 1:
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case 2:
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case 3:
-        return "bg-amber-100 text-amber-700 border-amber-200";
-      case 4:
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case 5:
-        return "bg-purple-100 text-purple-700 border-purple-200";
-      default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
-    }
-  };
-
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       className="space-y-10"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-        <motion.div variants={itemVariants}>
+        <div>
           <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <BookOpen className="h-8 w-8 text-primary" />
@@ -205,155 +295,155 @@ export default function CoursesPage() {
           <p className="text-muted-foreground mt-2 font-medium">
             Manage course catalog and academic structure.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div variants={itemVariants}>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                size="lg"
-                className="font-bold shadow-lg shadow-primary/20"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Add Course
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCourse ? "Edit Course" : "Add New Course"}
-                </DialogTitle>
-                <DialogDescription>
-                  Define course parameters and academic structure.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Course Code
-                    </Label>
-                    <Input
-                      value={formData.code}
-                      onChange={(e) =>
-                        setFormData({ ...formData, code: e.target.value })
-                      }
-                      placeholder="e.g., CS101"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Credits
-                    </Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="6"
-                      value={formData.credits}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          credits: parseInt(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              size="lg"
+              className="font-bold shadow-lg shadow-primary/20 h-12 rounded-xl"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Add Course
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingCourse ? "Edit Course" : "Add New Course"}
+              </DialogTitle>
+              <DialogDescription>
+                Define course parameters and academic structure.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Course Name
+                    Course Code
                   </Label>
                   <Input
-                    value={formData.name}
+                    value={formData.code}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      setFormData({ ...formData, code: e.target.value })
                     }
-                    placeholder="e.g., Introduction to Computer Science"
+                    placeholder="e.g., CS101"
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Department
+                    Credits
                   </Label>
                   <Input
-                    value={formData.department}
+                    type="number"
+                    min="1"
+                    max="6"
+                    value={formData.credits}
                     onChange={(e) =>
-                      setFormData({ ...formData, department: e.target.value })
+                      setFormData({
+                        ...formData,
+                        credits: parseInt(e.target.value),
+                      })
                     }
-                    placeholder="e.g., Computer Science"
                     required
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                      Year
-                    </Label>
-                    <Select
-                      value={formData.year.toString()}
-                      onValueChange={(v) =>
-                        setFormData({ ...formData, year: parseInt(v) })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5].map((y) => (
-                          <SelectItem key={y} value={y.toString()}>
-                            {y}st Year
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                      Section
-                    </Label>
-                    <Input
-                      value={formData.section}
-                      onChange={(e) =>
-                        setFormData({ ...formData, section: e.target.value })
-                      }
-                      placeholder="A"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                      Batch
-                    </Label>
-                    <Input
-                      value={formData.batch}
-                      onChange={(e) =>
-                        setFormData({ ...formData, batch: e.target.value })
-                      }
-                      placeholder="2024"
-                      required
-                    />
-                  </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Course Name
+                </Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="e.g., Introduction to Computer Science"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Department
+                </Label>
+                <Input
+                  value={formData.department}
+                  onChange={(e) =>
+                    setFormData({ ...formData, department: e.target.value })
+                  }
+                  placeholder="e.g., Computer Science"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Year
+                  </Label>
+                  <Select
+                    value={formData.year.toString()}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, year: parseInt(v) })
+                    }
+                  >
+                    <SelectTrigger className="rounded-lg h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {[1, 2, 3, 4, 5].map((y) => (
+                        <SelectItem key={y} value={y.toString()}>
+                          {y}st Year
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingCourse ? "Update Course" : "Create Course"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </motion.div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Section
+                  </Label>
+                  <Input
+                    value={formData.section}
+                    onChange={(e) =>
+                      setFormData({ ...formData, section: e.target.value })
+                    }
+                    placeholder="A"
+                    className="h-9"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Batch
+                  </Label>
+                  <Input
+                    value={formData.batch}
+                    onChange={(e) =>
+                      setFormData({ ...formData, batch: e.target.value })
+                    }
+                    placeholder="2024"
+                    className="h-9"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={resetForm}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingCourse ? "Update Course" : "Create Course"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <motion.div variants={itemVariants}>
-        <Card className="border-none shadow-2xl glass overflow-hidden">
-          <CardHeader className="bg-muted/30 pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -368,100 +458,86 @@ export default function CoursesPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code & Name</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Structure</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-center">Credits</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <AnimatePresence mode="popLayout">
-                    {courses.map((course) => (
-                      <TableRow
-                        key={course.id}
-                        className="group transition-colors"
-                      >
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-bold text-primary text-xs tracking-wider uppercase">
-                              {course.code}
-                            </span>
-                            <span className="font-bold text-foreground">
-                              {course.name}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium text-muted-foreground">
-                          {course.department}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getYearColor(course.year)}>
-                              Year {course.year}
-                            </Badge>
-                            <span className="text-sm font-bold text-muted-foreground">
-                              Sec {course.section}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              course.studentType === "regular"
-                                ? "default"
-                                : "outline"
-                            }
-                            className="capitalize"
-                          >
-                            {course.studentType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/5 text-primary font-bold">
-                            {course.credits}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(course)}
-                              className="h-8 w-8 text-primary hover:bg-primary/10"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(course.id)}
-                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </AnimatePresence>
-                </TableBody>
-              </Table>
-            </div>
-            {courses.length === 0 && !isLoading && (
-              <div className="p-12 text-center text-muted-foreground whitespace-pre-line">
-                No courses found.{"\n"}Click "Add Course" to get started.
-              </div>
-            )}
+          <CardContent className="p-6 flex-1">
+            <DataTable
+              columns={columns}
+              data={courses}
+              searchKey="name"
+              searchPlaceholder="Filter by course name..."
+            />
           </CardContent>
         </Card>
-      </motion.div>
+
+        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
+          <CardHeader className="bg-muted/30 pb-6 border-b">
+            <div className="flex items-center gap-2">
+              <BarChart className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl font-black">
+                Academic Load
+              </CardTitle>
+            </div>
+            <CardDescription className="font-medium">
+              Course distribution by year
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={yearData}>
+                  <PolarGrid stroke="hsl(var(--border))" />
+                  <PolarAngleAxis
+                    dataKey="subject"
+                    tick={{
+                      fontSize: 10,
+                      fontWeight: "black",
+                      fill: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <PolarRadiusAxis
+                    angle={30}
+                    domain={[0, "auto"]}
+                    tick={false}
+                    axisLine={false}
+                  />
+                  <Radar
+                    name="Courses"
+                    dataKey="A"
+                    stroke="hsl(var(--primary))"
+                    fill="hsl(var(--primary))"
+                    fillOpacity={0.4}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderRadius: "12px",
+                      border: "1px solid hsl(var(--border))",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              {yearData.map((data, index) => (
+                <div
+                  key={data.subject}
+                  className="flex flex-col p-3 rounded-xl bg-muted/30 border border-border/50"
+                >
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                    {data.subject}
+                  </span>
+                  <span className="text-xl font-black text-foreground">
+                    {data.A}{" "}
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Courses
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </motion.div>
   );
 }
