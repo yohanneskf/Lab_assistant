@@ -328,11 +328,11 @@ export default function AssistantsPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-10"
+      className="h-[calc(100vh-8.5rem)] flex flex-col gap-6"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
+        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col h-full">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -347,179 +347,184 @@ export default function AssistantsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 flex-1">
-            <DataTable
-              columns={columns}
-              data={assistants}
-              searchKey="username"
-              searchPlaceholder="Filter by username..."
-              action={
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Assistant
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[550px] rounded-2xl">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingAssistant
-                          ? "Edit Assistant"
-                          : "Register Assistant"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        Configure personal details and access permissions.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Internal ID
-                          </Label>
-                          <Input
-                            value={formData.labAssistantId}
-                            disabled
-                            className="bg-muted"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Username
-                          </Label>
-                          <Input
-                            value={formData.username}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                username: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            First Name
-                          </Label>
-                          <Input
-                            value={formData.firstName}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                firstName: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Last Name
-                          </Label>
-                          <Input
-                            value={formData.lastName}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                lastName: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Email Address
-                        </Label>
-                        <Input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData({ ...formData, email: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
-                      {!editingAssistant && (
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Secure Password
-                          </Label>
-                          <div className="relative">
+          <CardContent className="p-0 flex-1 overflow-y-auto">
+            <div className="p-6">
+              <DataTable
+                columns={columns}
+                data={assistants}
+                searchKey="username"
+                searchPlaceholder="Filter by username..."
+                action={
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Assistant
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[550px] rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingAssistant
+                            ? "Edit Assistant"
+                            : "Register Assistant"}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Configure personal details and access permissions.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Internal ID
+                            </Label>
                             <Input
-                              type={showPassword ? "text" : "password"}
-                              value={formData.password}
+                              value={formData.labAssistantId}
+                              disabled
+                              className="bg-muted"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Username
+                            </Label>
+                            <Input
+                              value={formData.username}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  password: e.target.value,
+                                  username: e.target.value,
                                 })
                               }
                               required
                             />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
                           </div>
                         </div>
-                      )}
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Department
-                        </Label>
-                        <Input
-                          value={formData.department}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              department: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={resetForm}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit">
-                          {editingAssistant
-                            ? "Update Profile"
-                            : "Create Account"}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              }
-            />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              First Name
+                            </Label>
+                            <Input
+                              value={formData.firstName}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  firstName: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Last Name
+                            </Label>
+                            <Input
+                              value={formData.lastName}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  lastName: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Email Address
+                          </Label>
+                          <Input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                email: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </div>
+                        {!editingAssistant && (
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Secure Password
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                type={showPassword ? "text" : "password"}
+                                value={formData.password}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    password: e.target.value,
+                                  })
+                                }
+                                required
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Department
+                          </Label>
+                          <Input
+                            value={formData.department}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                department: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={resetForm}
+                          >
+                            Cancel
+                          </Button>
+                          <Button type="submit">
+                            {editingAssistant
+                              ? "Update Profile"
+                              : "Create Account"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                }
+              />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+        <Card className="border-none shadow-2xl glass overflow-hidden h-full flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <CardTitle className="text-xl font-black">
               Department Distribution
             </CardTitle>
@@ -527,7 +532,7 @@ export default function AssistantsPage() {
               Staff allocation by area
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 flex-1 overflow-y-auto">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

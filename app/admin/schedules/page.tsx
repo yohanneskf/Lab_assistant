@@ -438,11 +438,11 @@ export default function SchedulesPage() {
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="space-y-10"
+      className="h-[calc(100vh-8.5rem)] flex flex-col gap-6"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Card className="lg:col-span-3 border-none shadow-2xl glass overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full min-h-0">
+        <Card className="lg:col-span-3 border-none shadow-2xl glass overflow-hidden flex flex-col h-full">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -457,223 +457,227 @@ export default function SchedulesPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 flex-1">
-            <DataTable
-              columns={columns}
-              data={schedules.filter((s) => s.status === "active")}
-              searchKey="courseId"
-              searchPlaceholder="Search by course..."
-              action={
-                <Dialog
-                  open={isDialogOpen}
-                  onOpenChange={(open) => {
-                    setIsDialogOpen(open);
-                    if (!open) resetForm();
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button
-                      disabled={!hasRequiredData}
-                      size="sm"
-                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Assignment
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px] rounded-2xl">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingSchedule ? "Edit Assignment" : "New Assignment"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        Configure resources and time for a lab session.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                      <div className="grid gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Course
-                          </Label>
-                          <Select
-                            value={formData.courseId}
-                            onValueChange={(v) =>
-                              setFormData({ ...formData, courseId: v })
-                            }
-                          >
-                            <SelectTrigger className="rounded-lg h-10">
-                              <SelectValue placeholder="Select course" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                              {courses
-                                .filter((c) => c.isActive)
-                                .map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>
-                                    {c.code} - {c.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
+          <CardContent className="p-0 flex-1 overflow-y-auto">
+            <div className="p-6">
+              <DataTable
+                columns={columns}
+                data={schedules.filter((s) => s.status === "active")}
+                searchKey="courseId"
+                searchPlaceholder="Search by course..."
+                action={
+                  <Dialog
+                    open={isDialogOpen}
+                    onOpenChange={(open) => {
+                      setIsDialogOpen(open);
+                      if (!open) resetForm();
+                    }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        disabled={!hasRequiredData}
+                        size="sm"
+                        className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        New Assignment
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingSchedule
+                            ? "Edit Assignment"
+                            : "New Assignment"}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Configure resources and time for a lab session.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                        <div className="grid gap-4">
                           <div className="space-y-2">
                             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Section
+                              Course
                             </Label>
                             <Select
-                              value={formData.sectionId}
+                              value={formData.courseId}
                               onValueChange={(v) =>
-                                setFormData({
-                                  ...formData,
-                                  sectionId: v,
-                                  groupId: "",
-                                })
+                                setFormData({ ...formData, courseId: v })
                               }
                             >
                               <SelectTrigger className="rounded-lg h-10">
-                                <SelectValue placeholder="Section" />
+                                <SelectValue placeholder="Select course" />
                               </SelectTrigger>
                               <SelectContent className="rounded-xl">
-                                {sections
-                                  .filter((s) => s.isActive)
-                                  .map((s) => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      {s.name}
+                                {courses
+                                  .filter((c) => c.isActive)
+                                  .map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.code} - {c.name}
                                     </SelectItem>
                                   ))}
                               </SelectContent>
                             </Select>
                           </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Section
+                              </Label>
+                              <Select
+                                value={formData.sectionId}
+                                onValueChange={(v) =>
+                                  setFormData({
+                                    ...formData,
+                                    sectionId: v,
+                                    groupId: "",
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="rounded-lg h-10">
+                                  <SelectValue placeholder="Section" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                  {sections
+                                    .filter((s) => s.isActive)
+                                    .map((s) => (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {s.name}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Group
+                              </Label>
+                              <Select
+                                value={formData.groupId}
+                                onValueChange={(v) =>
+                                  setFormData({ ...formData, groupId: v })
+                                }
+                              >
+                                <SelectTrigger className="rounded-lg h-10">
+                                  <SelectValue placeholder="Group (Opt)" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                  <SelectItem value="no-group">
+                                    Whole Section
+                                  </SelectItem>
+                                  {availableGroups.map((g) => (
+                                    <SelectItem key={g.id} value={g.id}>
+                                      {g.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
                           <div className="space-y-2">
                             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Group
+                              Lab Room
                             </Label>
                             <Select
-                              value={formData.groupId}
+                              value={formData.labRoomId}
                               onValueChange={(v) =>
-                                setFormData({ ...formData, groupId: v })
+                                setFormData({ ...formData, labRoomId: v })
                               }
                             >
                               <SelectTrigger className="rounded-lg h-10">
-                                <SelectValue placeholder="Group (Opt)" />
+                                <SelectValue placeholder="Select lab room" />
                               </SelectTrigger>
                               <SelectContent className="rounded-xl">
-                                <SelectItem value="no-group">
-                                  Whole Section
-                                </SelectItem>
-                                {availableGroups.map((g) => (
-                                  <SelectItem key={g.id} value={g.id}>
-                                    {g.name}
-                                  </SelectItem>
-                                ))}
+                                {labRooms
+                                  .filter((r) => r.isActive)
+                                  .map((r) => (
+                                    <SelectItem key={r.id} value={r.id}>
+                                      {r.name} ({r.location})
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Assistant
+                            </Label>
+                            <Select
+                              value={formData.labAssistantId}
+                              onValueChange={(v) =>
+                                setFormData({ ...formData, labAssistantId: v })
+                              }
+                            >
+                              <SelectTrigger className="rounded-lg h-10">
+                                <SelectValue placeholder="Select assistant" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                {assistants
+                                  .filter((a) => a.isActive)
+                                  .map((a) => (
+                                    <SelectItem
+                                      key={a.id}
+                                      value={a.labAssistantId}
+                                    >
+                                      {a.firstName} {a.lastName}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Time Slot
+                            </Label>
+                            <Select
+                              value={formData.timeSlotId}
+                              onValueChange={(v) =>
+                                setFormData({ ...formData, timeSlotId: v })
+                              }
+                            >
+                              <SelectTrigger className="rounded-lg h-10">
+                                <SelectValue placeholder="Select time slot" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                {timeSlots
+                                  .filter((t) => t.isActive)
+                                  .map((t) => (
+                                    <SelectItem key={t.id} value={t.id}>
+                                      {t.dayOfWeek}: {formatTime(t.startTime)} -{" "}
+                                      {formatTime(t.endTime)}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
                         </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Lab Room
-                          </Label>
-                          <Select
-                            value={formData.labRoomId}
-                            onValueChange={(v) =>
-                              setFormData({ ...formData, labRoomId: v })
-                            }
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setIsDialogOpen(false)}
                           >
-                            <SelectTrigger className="rounded-lg h-10">
-                              <SelectValue placeholder="Select lab room" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                              {labRooms
-                                .filter((r) => r.isActive)
-                                .map((r) => (
-                                  <SelectItem key={r.id} value={r.id}>
-                                    {r.name} ({r.location})
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Assistant
-                          </Label>
-                          <Select
-                            value={formData.labAssistantId}
-                            onValueChange={(v) =>
-                              setFormData({ ...formData, labAssistantId: v })
-                            }
-                          >
-                            <SelectTrigger className="rounded-lg h-10">
-                              <SelectValue placeholder="Select assistant" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                              {assistants
-                                .filter((a) => a.isActive)
-                                .map((a) => (
-                                  <SelectItem
-                                    key={a.id}
-                                    value={a.labAssistantId}
-                                  >
-                                    {a.firstName} {a.lastName}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Time Slot
-                          </Label>
-                          <Select
-                            value={formData.timeSlotId}
-                            onValueChange={(v) =>
-                              setFormData({ ...formData, timeSlotId: v })
-                            }
-                          >
-                            <SelectTrigger className="rounded-lg h-10">
-                              <SelectValue placeholder="Select time slot" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                              {timeSlots
-                                .filter((t) => t.isActive)
-                                .map((t) => (
-                                  <SelectItem key={t.id} value={t.id}>
-                                    {t.dayOfWeek}: {formatTime(t.startTime)} -{" "}
-                                    {formatTime(t.endTime)}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setIsDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit">
-                          {editingSchedule ? "Update" : "Create"}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              }
-            />
+                            Cancel
+                          </Button>
+                          <Button type="submit">
+                            {editingSchedule ? "Update" : "Create"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                }
+              />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+        <Card className="border-none shadow-2xl glass overflow-hidden h-full flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
               <CardTitle className="text-xl font-black">
@@ -684,7 +688,7 @@ export default function SchedulesPage() {
               Active sessions per laboratory
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 flex-1 overflow-y-auto">
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={utilizationData} layout="vertical">

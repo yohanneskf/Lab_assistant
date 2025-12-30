@@ -232,11 +232,11 @@ export default function LabRoomsPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-10"
+      className="h-[calc(100vh-8.5rem)] flex flex-col gap-6"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
+        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col h-full">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -251,139 +251,146 @@ export default function LabRoomsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 flex-1">
-            <DataTable
-              columns={columns}
-              data={labRooms}
-              searchKey="name"
-              searchPlaceholder="Search rooms..."
-              action={
-                <Dialog
-                  open={isCreateDialogOpen}
-                  onOpenChange={setIsCreateDialogOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button
-                      onClick={() => setEditingRoom(null)}
-                      size="sm"
-                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Room
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px] rounded-2xl">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingRoom ? "Edit Lab Room" : "Create New Lab Room"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        Enter the details for the laboratory space.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                      <div className="grid gap-4">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="name"
-                            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                          >
-                            Room Name
-                          </Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) =>
-                              setFormData({ ...formData, name: e.target.value })
-                            }
-                            placeholder="e.g., L-101 (Physics Lab)"
-                            required
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+          <CardContent className="p-0 flex-1 overflow-y-auto">
+            <div className="p-6">
+              <DataTable
+                columns={columns}
+                data={labRooms}
+                searchKey="name"
+                searchPlaceholder="Search rooms..."
+                action={
+                  <Dialog
+                    open={isCreateDialogOpen}
+                    onOpenChange={setIsCreateDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        onClick={() => setEditingRoom(null)}
+                        size="sm"
+                        className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Room
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px] rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingRoom
+                            ? "Edit Lab Room"
+                            : "Create New Lab Room"}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Enter the details for the laboratory space.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                        <div className="grid gap-4">
                           <div className="space-y-2">
                             <Label
-                              htmlFor="capacity"
+                              htmlFor="name"
                               className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
                             >
-                              Capacity
+                              Room Name
                             </Label>
                             <Input
-                              id="capacity"
-                              type="number"
-                              min="1"
-                              value={formData.capacity}
+                              id="name"
+                              value={formData.name}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  capacity: e.target.value,
+                                  name: e.target.value,
                                 })
                               }
+                              placeholder="e.g., L-101 (Physics Lab)"
                               required
                             />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label
+                                htmlFor="capacity"
+                                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                              >
+                                Capacity
+                              </Label>
+                              <Input
+                                id="capacity"
+                                type="number"
+                                min="1"
+                                value={formData.capacity}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    capacity: e.target.value,
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label
+                                htmlFor="location"
+                                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                              >
+                                Building
+                              </Label>
+                              <Input
+                                id="location"
+                                value={formData.location}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    location: e.target.value,
+                                  })
+                                }
+                                required
+                              />
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label
-                              htmlFor="location"
+                              htmlFor="equipment"
                               className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
                             >
-                              Building
+                              Equipment (comma-sep)
                             </Label>
                             <Input
-                              id="location"
-                              value={formData.location}
+                              id="equipment"
+                              value={formData.equipment}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  location: e.target.value,
+                                  equipment: e.target.value,
                                 })
                               }
-                              required
+                              placeholder="Microscopes, Projector..."
                             />
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="equipment"
-                            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={resetForm}
                           >
-                            Equipment (comma-sep)
-                          </Label>
-                          <Input
-                            id="equipment"
-                            value={formData.equipment}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                equipment: e.target.value,
-                              })
-                            }
-                            placeholder="Microscopes, Projector..."
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={resetForm}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit">
-                          {editingRoom ? "Save Changes" : "Create Room"}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              }
-            />
+                            Cancel
+                          </Button>
+                          <Button type="submit">
+                            {editingRoom ? "Save Changes" : "Create Room"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                }
+              />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+        <Card className="border-none shadow-2xl glass overflow-hidden h-full flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
               <CardTitle className="text-xl font-black">
@@ -394,7 +401,7 @@ export default function LabRoomsPage() {
               Seating capacity per laboratory
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 flex-1 overflow-y-auto">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart

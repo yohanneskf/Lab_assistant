@@ -282,11 +282,11 @@ export default function CoursesPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-10"
+      className="h-[calc(100vh-8.5rem)] flex flex-col gap-6"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
+        <Card className="lg:col-span-2 border-none shadow-2xl glass overflow-hidden flex flex-col h-full">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl font-black">
@@ -301,175 +301,180 @@ export default function CoursesPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 flex-1">
-            <DataTable
-              columns={columns}
-              data={courses}
-              searchKey="name"
-              searchPlaceholder="Filter by course name..."
-              action={
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Course
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px] rounded-2xl">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingCourse ? "Edit Course" : "Add New Course"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        Define course parameters and academic structure.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-                      <div className="grid grid-cols-2 gap-4">
+          <CardContent className="p-0 flex-1 overflow-y-auto">
+            <div className="p-6">
+              <DataTable
+                columns={columns}
+                data={courses}
+                searchKey="name"
+                searchPlaceholder="Filter by course name..."
+                action={
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        className="font-bold shadow-sm shadow-primary/20 h-9 rounded-xl"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Course
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px] rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingCourse ? "Edit Course" : "Add New Course"}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Define course parameters and academic structure.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Course Code
+                            </Label>
+                            <Input
+                              value={formData.code}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  code: e.target.value,
+                                })
+                              }
+                              placeholder="e.g., CS101"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                              Credits
+                            </Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="6"
+                              value={formData.credits}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  credits: parseInt(e.target.value),
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                        </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Course Code
+                            Course Name
                           </Label>
                           <Input
-                            value={formData.code}
+                            value={formData.name}
                             onChange={(e) =>
-                              setFormData({ ...formData, code: e.target.value })
+                              setFormData({ ...formData, name: e.target.value })
                             }
-                            placeholder="e.g., CS101"
+                            placeholder="e.g., Introduction to Computer Science"
                             required
                           />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Credits
+                            Department
                           </Label>
                           <Input
-                            type="number"
-                            min="1"
-                            max="6"
-                            value={formData.credits}
+                            value={formData.department}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
-                                credits: parseInt(e.target.value),
+                                department: e.target.value,
                               })
                             }
+                            placeholder="e.g., Computer Science"
                             required
                           />
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Course Name
-                        </Label>
-                        <Input
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData({ ...formData, name: e.target.value })
-                          }
-                          placeholder="e.g., Introduction to Computer Science"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Department
-                        </Label>
-                        <Input
-                          value={formData.department}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              department: e.target.value,
-                            })
-                          }
-                          placeholder="e.g., Computer Science"
-                          required
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                            Year
-                          </Label>
-                          <Select
-                            value={formData.year.toString()}
-                            onValueChange={(v) =>
-                              setFormData({ ...formData, year: parseInt(v) })
-                            }
+                        <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                              Year
+                            </Label>
+                            <Select
+                              value={formData.year.toString()}
+                              onValueChange={(v) =>
+                                setFormData({ ...formData, year: parseInt(v) })
+                              }
+                            >
+                              <SelectTrigger className="rounded-lg h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                {[1, 2, 3, 4, 5].map((y) => (
+                                  <SelectItem key={y} value={y.toString()}>
+                                    {y}st Year
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                              Section
+                            </Label>
+                            <Input
+                              value={formData.section}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  section: e.target.value,
+                                })
+                              }
+                              placeholder="A"
+                              className="h-9"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                              Batch
+                            </Label>
+                            <Input
+                              value={formData.batch}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  batch: e.target.value,
+                                })
+                              }
+                              placeholder="2024"
+                              className="h-9"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={resetForm}
                           >
-                            <SelectTrigger className="rounded-lg h-9">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                              {[1, 2, 3, 4, 5].map((y) => (
-                                <SelectItem key={y} value={y.toString()}>
-                                  {y}st Year
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                            Section
-                          </Label>
-                          <Input
-                            value={formData.section}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                section: e.target.value,
-                              })
-                            }
-                            placeholder="A"
-                            className="h-9"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                            Batch
-                          </Label>
-                          <Input
-                            value={formData.batch}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                batch: e.target.value,
-                              })
-                            }
-                            placeholder="2024"
-                            className="h-9"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={resetForm}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit">
-                          {editingCourse ? "Update Course" : "Create Course"}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              }
-            />
+                            Cancel
+                          </Button>
+                          <Button type="submit">
+                            {editingCourse ? "Update Course" : "Create Course"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                }
+              />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-2xl glass overflow-hidden h-fit">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
+        <Card className="border-none shadow-2xl glass overflow-hidden h-full flex flex-col">
+          <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center gap-2">
               <BarChart className="h-5 w-5 text-primary" />
               <CardTitle className="text-xl font-black">
@@ -480,7 +485,7 @@ export default function CoursesPage() {
               Course distribution by year
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 flex-1 overflow-y-auto">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={yearData}>
