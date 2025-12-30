@@ -22,6 +22,15 @@ import {
   Activity,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -175,9 +184,9 @@ export default function AdminDashboard() {
         ))}
       </motion.div>
 
-      {/* Main content area */}
+      {/* Main content area with Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Quick Actions Panel */}
+        {/* Analytics Graph - Weekly Activity */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -189,43 +198,17 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xl flex items-center">
-                    <Layers className="h-5 w-5 mr-2 text-primary" />
-                    Management Controls
+                    <BarChart2 className="h-5 w-5 mr-2 text-primary" />
+                    Weekly Activity
                   </CardTitle>
                   <CardDescription>
-                    Direct access to key administrative features
+                    Lab session distribution across the week
                   </CardDescription>
                 </div>
-                <Settings className="h-5 w-5 text-muted-foreground hover:rotate-90 transition-transform duration-500 cursor-pointer" />
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <ActionCard
-                  title="Assign Lab Rooms"
-                  desc="Configure space availability"
-                  icon={Building2}
-                  color="blue"
-                />
-                <ActionCard
-                  title="Manage Courses"
-                  desc="Update academic registration"
-                  icon={BookOpen}
-                  color="emerald"
-                />
-                <ActionCard
-                  title="Assistant Staff"
-                  desc="Manage roles and access"
-                  icon={Users}
-                  color="violet"
-                />
-                <ActionCard
-                  title="Session Schedules"
-                  desc="Publish and sync rotations"
-                  icon={Calendar}
-                  color="orange"
-                />
-              </div>
+              <WeeklyActivityChart />
             </CardContent>
           </Card>
         </motion.div>
@@ -309,6 +292,130 @@ export default function AdminDashboard() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Quick Actions Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <Card className="border-border shadow-sm">
+          <CardHeader className="border-b bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl flex items-center">
+                  <Layers className="h-5 w-5 mr-2 text-primary" />
+                  Management Controls
+                </CardTitle>
+                <CardDescription>
+                  Direct access to key administrative features
+                </CardDescription>
+              </div>
+              <Settings className="h-5 w-5 text-muted-foreground hover:rotate-90 transition-transform duration-500 cursor-pointer" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <ActionCard
+                title="Assign Lab Rooms"
+                desc="Configure space availability"
+                icon={Building2}
+                color="blue"
+              />
+              <ActionCard
+                title="Manage Courses"
+                desc="Update academic registration"
+                icon={BookOpen}
+                color="emerald"
+              />
+              <ActionCard
+                title="Assistant Staff"
+                desc="Manage roles and access"
+                icon={Users}
+                color="violet"
+              />
+              <ActionCard
+                title="Session Schedules"
+                desc="Publish and sync rotations"
+                icon={Calendar}
+                color="orange"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}
+
+// Weekly Activity Chart Component
+function WeeklyActivityChart() {
+  const data = [
+    { day: "Mon", sessions: 12, capacity: 15 },
+    { day: "Tue", sessions: 15, capacity: 15 },
+    { day: "Wed", sessions: 14, capacity: 15 },
+    { day: "Thu", sessions: 13, capacity: 15 },
+    { day: "Fri", sessions: 11, capacity: 15 },
+    { day: "Sat", sessions: 6, capacity: 15 },
+    { day: "Sun", sessions: 3, capacity: 15 },
+  ];
+
+  return (
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="5%"
+                stopColor="hsl(var(--primary))"
+                stopOpacity={0.3}
+              />
+              <stop
+                offset="95%"
+                stopColor="hsl(var(--primary))"
+                stopOpacity={0}
+              />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis
+            dataKey="day"
+            axisLine={false}
+            tickLine={false}
+            tick={{
+              fontSize: 12,
+              fontWeight: "bold",
+              fill: "hsl(var(--muted-foreground))",
+            }}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{
+              fontSize: 12,
+              fontWeight: "bold",
+              fill: "hsl(var(--muted-foreground))",
+            }}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "hsl(var(--card))",
+              borderRadius: "12px",
+              border: "1px solid hsl(var(--border))",
+              boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey="sessions"
+            stroke="hsl(var(--primary))"
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#colorSessions)"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }

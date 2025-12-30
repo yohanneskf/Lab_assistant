@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Lab Schedule",
@@ -22,8 +23,17 @@ export default function RootLayout({
   return (
     // 2. Remove <head> and <style> tags entirely.
     // 3. Apply the combined class string directly to the <html> element.
-    <html lang="en" className={fontClasses}>
-      <body>{children}</body>
+    <html lang="en" className={fontClasses} suppressHydrationWarning>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

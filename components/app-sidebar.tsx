@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/lib/auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const data = {
   admin: [
@@ -238,73 +239,80 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-primary/5 transition-colors rounded-xl p-2"
-                >
-                  <Avatar className="h-8 w-8 rounded-lg border-2 border-primary/20 shadow-sm">
-                    <AvatarImage
-                      src={undefined}
-                      alt={user?.username || "User"}
-                    />
-                    <AvatarFallback className="bg-primary/10 text-primary font-black uppercase text-xs">
-                      {user?.username?.[0] || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden ml-2">
-                    <span className="truncate font-black text-foreground">
-                      {user?.firstName} {user?.lastName}
-                    </span>
-                    <span className="truncate text-[10px] font-bold text-muted-foreground uppercase opacity-70">
-                      @{user?.username}
-                    </span>
-                  </div>
-                  <ChevronRight className="ml-auto size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl shadow-2xl border-border bg-card/80 backdrop-blur-xl"
-                side={isMobile ? "bottom" : "right"}
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-3 px-3 py-2">
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage
-                        src={undefined}
-                        alt={user?.username || "User"}
-                      />
-                      <AvatarFallback className="bg-primary/10 text-primary font-black uppercase">
-                        {user?.username?.[0] || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-black">
-                        {user?.firstName} {user?.lastName}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        @{user?.username}
-                      </span>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border" />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer font-bold gap-2 p-3"
-                >
-                  <LogOut className="size-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      size="lg"
+                      className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-primary/5 transition-colors rounded-xl p-2"
+                    >
+                      <Avatar className="h-8 w-8 rounded-lg border-2 border-primary/20 shadow-sm">
+                        <AvatarImage
+                          src={undefined}
+                          alt={user?.username || "User"}
+                        />
+                        <AvatarFallback className="bg-primary/10 text-primary font-black uppercase text-xs">
+                          {user?.username?.[0] || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden ml-2">
+                        <span className="truncate font-black text-foreground">
+                          {user?.firstName} {user?.lastName}
+                        </span>
+                        <span className="truncate text-[10px] font-bold text-muted-foreground uppercase opacity-70">
+                          @{user?.username}
+                        </span>
+                      </div>
+                      <ChevronRight className="ml-auto size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl shadow-2xl border-border bg-card/80 backdrop-blur-xl"
+                    side={isMobile ? "bottom" : "right"}
+                    align="end"
+                    sideOffset={4}
+                  >
+                    <DropdownMenuLabel className="p-0 font-normal">
+                      <div className="flex items-center gap-3 px-3 py-2">
+                        <Avatar className="h-8 w-8 rounded-lg">
+                          <AvatarImage
+                            src={undefined}
+                            alt={user?.username || "User"}
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary font-black uppercase">
+                            {user?.username?.[0] || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="grid flex-1 text-left text-sm leading-tight">
+                          <span className="truncate font-black">
+                            {user?.firstName} {user?.lastName}
+                          </span>
+                          <span className="truncate text-xs text-muted-foreground">
+                            @{user?.username}
+                          </span>
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer font-bold gap-2 p-3"
+                    >
+                      <LogOut className="size-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </div>
+          <div className="group-data-[collapsible=icon]:hidden">
+            <ThemeToggle />
+          </div>
+        </div>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
