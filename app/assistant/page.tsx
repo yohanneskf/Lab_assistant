@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -29,11 +27,13 @@ import {
   LogOut,
   Key,
   BookOpen,
-  Loader2,
+  ArrowRight,
+  Sparkles,
+  Layout,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// Import your types from a separate types file
+import { motion } from "framer-motion";
 import {
   type ScheduleAssignment,
   type LabRoom,
@@ -42,9 +42,8 @@ import {
   type Group,
   type LabAssistant,
   type Course,
-} from "@/types/type"; // Assuming "@/types/type" exists
+} from "@/types/type";
 
-// This interface is fine, as it's just for client-side typing
 interface ScheduleWithDetails extends ScheduleAssignment {
   id: string;
   course: Course;
@@ -64,31 +63,23 @@ export default function AssistantDashboard() {
     const fetchSchedules = async () => {
       const user = AuthService.getCurrentUser();
 
-      // Basic client-side guard for the dashboard
       if (
         !user ||
         user.role.toLowerCase() !== "lab_assistant" ||
         !user.labAssistantId
       ) {
-        setLoading(false);
-        // Redirect to login if not authenticated as an assistant
         router.push("/assistant-login");
         return;
       }
 
       try {
-        // Fetch schedules using the labAssistantId from the user object
         const response = await fetch(
           `/api/assistant-schedule?labAssistantId=${user.labAssistantId}`
         );
-        if (!response.ok) {
-          throw new Error("Failed to fetch schedule data");
-        }
+        if (!response.ok) throw new Error("Failed to fetch schedule data");
         const data = await response.json();
-
         setAssistant(data.assistant);
 
-        // Sort the schedules by day of week and time
         const dayOrder = [
           "Monday",
           "Tuesday",
@@ -103,7 +94,6 @@ export default function AssistantDashboard() {
             const dayA = dayOrder.indexOf(a.timeSlot.dayOfWeek);
             const dayB = dayOrder.indexOf(b.timeSlot.dayOfWeek);
             if (dayA !== dayB) return dayA - dayB;
-            // Lexicographical time comparison is fine for standard "HH:mm" format
             return a.timeSlot.startTime.localeCompare(b.timeSlot.startTime);
           }
         );
@@ -126,260 +116,272 @@ export default function AssistantDashboard() {
 
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(":");
-    const hour = Number.parseInt(hours);
+    const hour = parseInt(hours);
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 text-green-600 animate-spin" />
-        <p className="mt-3 text-lg font-medium text-gray-700">
-          Loading your weekly schedule...
-        </p>
-      </div>
-    );
-  }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 },
+  };
 
   return (
-    <div className="space-y-8">
-      {/* --- MODIFICATION: Header & Action Buttons for Mobile ---
-        - flex-col on mobile (default)
-        - md:flex-row to return to row layout on medium screens
-        - Added gap-4 for vertical space on mobile
-      */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b pb-4 gap-4">
-        <div>
-          {/* Increased font size slightly on mobile for clarity */}
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
-            <Calendar className="h-6 w-6 sm:h-7 sm:w-7 mr-3 text-green-600" />
-            My Weekly Schedule
+    <div className="space-y-10 pb-12">
+      {/* Redesigned Header */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-6"
+      >
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2 text-green-600 font-semibold tracking-wide uppercase text-sm">
+            <Sparkles className="h-4 w-4" />
+            <span>Assistant Portal</span>
+          </div>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            Weekly Schedule
           </h1>
-          <p className="text-base sm:text-lg text-gray-600 mt-1">
-            Welcome,{" "}
-            <span className="font-semibold">
+          <p className="text-muted-foreground text-lg">
+            Welcome back,{" "}
+            <span className="text-foreground font-semibold">
               {assistant?.firstName} {assistant?.lastName}
-            </span>{" "}
-            ({assistant?.labAssistantId})
+            </span>
           </p>
         </div>
-
-        {/* Button Group: Use flex-row but wrap if needed on very small screens, 
-            or force nowrap and allow scrolling if necessary, but flex-row space-x-3 is usually fine. */}
-        <div className="flex space-x-3 w-full md:w-auto mt-2 md:mt-0 justify-end">
-          <Link
-            href="/assistant/change-password"
-            passHref
-            className="w-1/2 md:w-auto"
-          >
+        <div className="flex items-center gap-3">
+          <Link href="/assistant/change-password">
             <Button
               variant="outline"
-              className="text-gray-700 hover:bg-gray-100 border-gray-300 w-full"
+              className="rounded-xl h-11 border-border bg-card hover:bg-muted transition-colors"
             >
-              <Key className="mr-1 h-4 w-4 text-orange-500" />
-              <span className="hidden sm:inline">Change Password</span>
-              <span className="sm:hidden">Password</span>
+              <Key className="mr-2 h-4 w-4 text-orange-500" />
+              Security
             </Button>
           </Link>
           <Button
             onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 transition duration-150 w-1/2 md:w-auto"
+            variant="destructive"
+            className="rounded-xl h-11 bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/10"
           >
-            <LogOut className="mr-1 h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-            <span className="sm:hidden">Log Out</span>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* --- Stats Cards --- (The responsive grid handles this well already) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total Sessions
-            </CardTitle>
-            <Calendar className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{schedules.length}</div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Active assignments
-            </p>
-          </CardContent>
-        </Card>
+      {/* Modern Stats Grid */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+      >
+        <StatCard
+          title="Total Sessions"
+          value={schedules.length}
+          desc="Weekly tasks"
+          icon={Calendar}
+          color="blue"
+        />
+        <StatCard
+          title="Active Courses"
+          value={new Set(schedules.map((s) => s.course.id)).size}
+          desc="Academic depth"
+          icon={BookOpen}
+          color="emerald"
+        />
+        <StatCard
+          title="Unique Sections"
+          value={new Set(schedules.map((s) => s.section.id)).size}
+          desc="Group batches"
+          icon={Layout}
+          color="violet"
+        />
+        <StatCard
+          title="Lab Locations"
+          value={new Set(schedules.map((s) => s.labRoom.id)).size}
+          desc="Across campus"
+          icon={MapPin}
+          color="orange"
+        />
+      </motion.div>
 
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Courses
-            </CardTitle>
-            <BookOpen className="h-5 w-5 text-indigo-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {new Set(schedules.map((s) => s.course.id)).size}
+      {/* Enhanced Schedule Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Card className="border-border shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
+          <CardHeader className="bg-muted/30 border-b py-6 px-8 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold">
+                Assigned Sessions
+              </CardTitle>
+              <CardDescription className="text-base">
+                Comprehensive view of your weekly rotations
+              </CardDescription>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Different courses
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Sections
-            </CardTitle>
-            <Clock className="h-5 w-5 text-green-600" />
+            <div className="hidden sm:block">
+              <Badge
+                variant="outline"
+                className="bg-green-500/10 text-green-600 border-green-500/20 py-1.5 px-3 rounded-full font-medium"
+              >
+                {schedules.length} Active Assignments
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {new Set(schedules.map((s) => s.section.id)).size}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Unique sections
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Lab Rooms
-            </CardTitle>
-            <MapPin className="h-5 w-5 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {new Set(schedules.map((s) => s.labRoom.id)).size}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Different rooms
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Department
-            </CardTitle>
-            <User className="h-5 w-5 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold truncate">
-              {assistant?.department || "N/A"}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Your primary dept.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* --- Schedule Table --- (The overflow-x-auto handles table responsiveness) */}
-      <Card className="shadow-xl">
-        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
-          <CardTitle className="text-2xl font-bold text-gray-800">
-            Assigned Sessions
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            A comprehensive list of all your weekly laboratory assignments,
-            sorted by day and time.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {schedules.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 italic text-lg">
-              No schedule assignments found for you this semester.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-100">
-                  <TableRow>
-                    <TableHead className="w-[150px] font-bold text-gray-700">
-                      Course
-                    </TableHead>
-                    <TableHead className="w-[150px] font-bold text-gray-700">
-                      Day & Time
-                    </TableHead>
-                    <TableHead className="w-[150px] font-bold text-gray-700">
-                      Section & Group
-                    </TableHead>
-                    <TableHead className="w-[150px] font-bold text-gray-700">
-                      Room
-                    </TableHead>
-                    <TableHead className="w-[150px] font-bold text-gray-700">
-                      Location
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {schedules.map((schedule) => (
-                    <TableRow
-                      key={schedule.id}
-                      className="border-b hover:bg-green-50/50 transition-colors duration-200"
-                    >
-                      <TableCell className="font-medium">
-                        <div className="space-y-1">
-                          <div className="font-semibold text-gray-800">
-                            {schedule.course.code}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {schedule.course.name}
-                          </div>
-                          <Badge className="text-xs bg-gray-200 text-gray-700 hover:bg-gray-300">
-                            {schedule.course.credits} Credits
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <Badge
-                            variant="outline"
-                            className="font-bold bg-green-100 text-green-700 border-green-300"
-                          >
-                            {schedule.timeSlot.dayOfWeek}
-                          </Badge>
-                          <div className="text-sm font-medium text-gray-700">
-                            {formatTime(schedule.timeSlot.startTime)} -{" "}
-                            {formatTime(schedule.timeSlot.endTime)}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium text-gray-700">
-                            Section: {schedule.section.name}
-                          </div>
-                          {schedule.group && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                            >
-                              Group: {schedule.group.name}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-semibold text-blue-700">
-                        {schedule.labRoom.name}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {schedule.labRoom.location}
-                      </TableCell>
+          <CardContent className="p-0">
+            {schedules.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="bg-muted rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold">No schedules found</h3>
+                <p className="text-muted-foreground">
+                  You don't have any assignments for this semester yet.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50 border-b">
+                      <TableHead className="py-4 px-8 font-bold text-foreground">
+                        COURSE
+                      </TableHead>
+                      <TableHead className="py-4 font-bold text-foreground">
+                        DAY & TIME
+                      </TableHead>
+                      <TableHead className="py-4 font-bold text-foreground">
+                        SECTION INFO
+                      </TableHead>
+                      <TableHead className="py-4 font-bold text-foreground">
+                        ROOM
+                      </TableHead>
+                      <TableHead className="py-4 px-8 text-right font-bold text-foreground">
+                        LOCATION
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {schedules.map((schedule, idx) => (
+                      <motion.tr
+                        key={schedule.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 * idx }}
+                        className="group hover:bg-green-500/[0.03] transition-colors border-b last:border-0"
+                      >
+                        <TableCell className="py-6 px-8">
+                          <div className="space-y-1">
+                            <div className="font-bold text-lg text-foreground group-hover:text-green-600 transition-colors">
+                              {schedule.course.code}
+                            </div>
+                            <div className="text-sm text-muted-foreground line-clamp-1">
+                              {schedule.course.name}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-2">
+                            <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-green-500/10 text-green-700 text-xs font-bold border border-green-500/10">
+                              {schedule.timeSlot.dayOfWeek.toUpperCase()}
+                            </div>
+                            <div className="flex items-center text-sm font-medium text-muted-foreground">
+                              <Clock className="h-3.5 w-3.5 mr-1.5 opacity-60" />
+                              {formatTime(schedule.timeSlot.startTime)} -{" "}
+                              {formatTime(schedule.timeSlot.endTime)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1.5">
+                            <div className="text-sm font-semibold flex items-center">
+                              <User className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                              Section {schedule.section.name}
+                            </div>
+                            {schedule.group && (
+                              <div className="text-xs text-muted-foreground bg-muted inline-block px-2 py-0.5 rounded">
+                                Group: {schedule.group.name}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center font-bold text-foreground">
+                            <MapPin className="h-4 w-4 mr-1.5 text-primary opacity-70" />
+                            {schedule.labRoom.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-6 px-8 text-right">
+                          <span className="text-sm italic text-muted-foreground bg-muted/30 px-3 py-1.5 rounded-lg border border-border/50">
+                            {schedule.labRoom.location}
+                          </span>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
+  );
+}
+
+function StatCard({ title, value, desc, icon: Icon, color }: any) {
+  const colors: any = {
+    blue: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    emerald: "bg-emerald-500/10 text-green-600 border-green-500/20",
+    violet: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+    orange: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+  };
+
+  return (
+    <motion.div
+      whileHover={{ y: -5 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    >
+      <Card
+        className={`relative overflow-hidden border ${
+          colors[color].split(" ")[2]
+        } shadow-sm`}
+      >
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+            {title}
+          </CardTitle>
+          <div
+            className={`p-2.5 rounded-xl ${colors[color]
+              .split(" ")
+              .slice(0, 2)
+              .join(" ")}`}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold tracking-tight">{value}</div>
+          <p className="text-xs text-muted-foreground mt-1 font-medium">
+            {desc}
+          </p>
+        </CardContent>
+        <div
+          className={`absolute -right-6 -bottom-6 h-24 w-24 rounded-full ${
+            colors[color].split(" ")[0]
+          } blur-3xl opacity-30`}
+        />
+      </Card>
+    </motion.div>
   );
 }

@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,7 +16,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter, // Added DialogFooter import
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,8 +37,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Calendar, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Assuming types are defined here for completeness in the example, or imported.
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
+
 interface ScheduleAssignment {
   id: string;
   courseId: string;
@@ -48,6 +67,7 @@ interface ScheduleAssignment {
   timeSlotId: string;
   status: "active" | "inactive";
 }
+// ... [interface definitions remain the same]
 interface LabRoom {
   id: string;
   name: string;
@@ -106,6 +126,7 @@ export default function SchedulesPage() {
   const [sections, setSections] = useState<Section[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingSchedule, setEditingSchedule] =
     useState<ScheduleAssignment | null>(null);
   const [formData, setFormData] = useState({
@@ -122,6 +143,7 @@ export default function SchedulesPage() {
   }, []);
 
   const loadData = async () => {
+    setIsLoading(true);
     try {
       const [
         schedulesRes,
@@ -141,13 +163,23 @@ export default function SchedulesPage() {
         fetch("/api/groups"),
       ]);
 
-      const schedulesData = await schedulesRes.json();
-      const labRoomsData = await labRoomsRes.json();
-      const assistantsData = await assistantsRes.json();
-      const timeSlotsData = await timeSlotsRes.json();
-      const coursesData = await coursesRes.json();
-      const sectionsData = await sectionsRes.json();
-      const groupsData = await groupsRes.json();
+      const [
+        schedulesData,
+        labRoomsData,
+        assistantsData,
+        timeSlotsData,
+        coursesData,
+        sectionsData,
+        groupsData,
+      ] = await Promise.all([
+        schedulesRes.json(),
+        labRoomsRes.json(),
+        assistantsRes.json(),
+        timeSlotsRes.json(),
+        coursesRes.json(),
+        sectionsRes.json(),
+        groupsRes.json(),
+      ]);
 
       setSchedules(schedulesData);
       setLabRooms(labRoomsData);
@@ -158,13 +190,14 @@ export default function SchedulesPage() {
       setGroups(groupsData);
     } catch (error) {
       console.error("Failed to load data:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // --- Conflict Check ---
     const conflictCheckRes = await fetch(`/api/schedules/check-conflict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -172,7 +205,6 @@ export default function SchedulesPage() {
         labRoomId: formData.labRoomId,
         labAssistantId: formData.labAssistantId,
         timeSlotId: formData.timeSlotId,
-        // Exclude the current assignment ID if editing
         excludeAssignmentId: editingSchedule?.id,
       }),
     });
@@ -189,37 +221,25 @@ export default function SchedulesPage() {
     const scheduleData = {
       ...formData,
       status: "active",
-      // Convert "no-group" back to null for the API
       groupId: formData.groupId === "no-group" ? null : formData.groupId,
     };
 
     try {
-      if (editingSchedule) {
-        const response = await fetch("/api/schedules", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: editingSchedule.id, ...scheduleData }),
-        });
-        if (response.ok) {
-          loadData();
-          setIsDialogOpen(false);
-          resetForm();
-        } else {
-          console.error("Failed to update schedule");
-        }
-      } else {
-        const response = await fetch("/api/schedules", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(scheduleData),
-        });
-        if (response.ok) {
-          loadData();
-          setIsDialogOpen(false);
-          resetForm();
-        } else {
-          console.error("Failed to create schedule");
-        }
+      const method = editingSchedule ? "PUT" : "POST";
+      const payload = editingSchedule
+        ? { id: editingSchedule.id, ...scheduleData }
+        : scheduleData;
+
+      const response = await fetch("/api/schedules", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        loadData();
+        setIsDialogOpen(false);
+        resetForm();
       }
     } catch (error) {
       console.error("An error occurred during form submission:", error);
@@ -231,7 +251,6 @@ export default function SchedulesPage() {
     setFormData({
       courseId: schedule.courseId,
       sectionId: schedule.sectionId,
-      // Map null group ID to "no-group" for the select dropdown
       groupId: schedule.groupId || "no-group",
       labRoomId: schedule.labRoomId,
       labAssistantId: schedule.labAssistantId,
@@ -241,23 +260,14 @@ export default function SchedulesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this schedule assignment? This will mark it as inactive."
-      )
-    ) {
+    if (confirm("Are you sure you want to delete this schedule assignment?")) {
       try {
-        // Assuming deletion is handled by setting status to inactive
         const response = await fetch("/api/schedules", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id, status: "inactive" }),
         });
-        if (response.ok) {
-          loadData();
-        } else {
-          console.error("Failed to delete schedule");
-        }
+        if (response.ok) loadData();
       } catch (error) {
         console.error("An error occurred during deletion:", error);
       }
@@ -278,9 +288,7 @@ export default function SchedulesPage() {
 
   const handleDialogChange = (open: boolean) => {
     setIsDialogOpen(open);
-    if (!open) {
-      resetForm();
-    }
+    if (!open) resetForm();
   };
 
   const getLabRoom = (id: string) => labRooms.find((room) => room.id === id);
@@ -294,7 +302,7 @@ export default function SchedulesPage() {
 
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(":");
-    const hour = Number.parseInt(hours);
+    const hour = parseInt(hours);
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes.padStart(2, "0")} ${ampm}`;
@@ -312,392 +320,391 @@ export default function SchedulesPage() {
     timeSlots.length > 0;
 
   return (
-    <div className="space-y-8">
-      {" "}
-      {/* Consistent outside spacing */}
-      {/* --- Header and Action Button --- */}
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
-            <Calendar className="h-7 w-7 mr-3 text-blue-600" />{" "}
-            {/* Consistent blue icon */}
-            Schedule Assignments
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="space-y-8 max-w-7xl mx-auto"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+        <motion.div variants={itemVariants}>
+          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Calendar className="h-8 w-8 text-primary" />
+            </div>
+            Schedules
           </h1>
-          <p className="text-lg text-gray-500 mt-1">
-            Manage lab session schedules by assigning resources and time
+          <p className="text-muted-foreground mt-2 font-medium">
+            Manage and assign lab resources to academic sessions.
           </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-          <DialogTrigger asChild>
-            <Button
-              disabled={!hasRequiredData}
-              className="bg-blue-600 hover:bg-blue-700 transition duration-150 shadow-md"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Add Schedule
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">
-                {editingSchedule
-                  ? "Edit Schedule Assignment"
-                  : "Add New Schedule Assignment"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingSchedule
-                  ? "Update schedule assignment details, checking for conflicts."
-                  : "Create a new lab session schedule, ensuring no resource conflicts."}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="courseId" className="font-semibold">
-                  Course
-                </Label>
-                <Select
-                  value={formData.courseId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, courseId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courses
-                      .filter((c) => c.isActive)
-                      .map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {course.code} - {course.name}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {course.department} • {course.year} Year
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sectionId" className="font-semibold">
-                  Section
-                </Label>
-                <Select
-                  value={formData.sectionId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, sectionId: value, groupId: "" })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a section" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sections
-                      .filter((s) => s.isActive)
-                      .map((section) => (
-                        <SelectItem key={section.id} value={section.id}>
-                          {section.name} - {section.year} Year (
-                          {section.department})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {availableGroups.length > 0 && (
-                <div className="space-y-2">
-                  <Label htmlFor="groupId" className="font-semibold">
-                    Group (Optional)
-                  </Label>
-                  <Select
-                    value={formData.groupId}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, groupId: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a group (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no-group">
-                        No specific group
-                      </SelectItem>
-                      {availableGroups.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {group.name} (Capacity: {group.capacity})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="labRoomId" className="font-semibold">
-                  Lab Room
-                </Label>
-                <Select
-                  value={formData.labRoomId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, labRoomId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a lab room" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {labRooms
-                      .filter((r) => r.isActive)
-                      .map((room) => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.name} - {room.location} (Capacity:{" "}
-                          {room.capacity})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="labAssistantId" className="font-semibold">
-                  Lab Assistant
-                </Label>
-                <Select
-                  value={formData.labAssistantId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, labAssistantId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a lab assistant" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assistants
-                      .filter((a) => a.isActive)
-                      .map((assistant) => (
-                        <SelectItem
-                          key={assistant.id}
-                          value={assistant.labAssistantId}
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {assistant.firstName} {assistant.lastName}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {assistant.email}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="timeSlotId" className="font-semibold">
-                  Time Slot
-                </Label>
-                <Select
-                  value={formData.timeSlotId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, timeSlotId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a time slot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots
-                      .filter((t) => t.isActive)
-                      .map((slot) => (
-                        <SelectItem key={slot.id} value={slot.id}>
-                          {slot.dayOfWeek} {formatTime(slot.startTime)} -{" "}
-                          {formatTime(slot.endTime)} ({slot.slotType})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <DialogFooter className="pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  {editingSchedule ? "Update Schedule" : "Create Schedule"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-      {/* --- Missing Data Warning --- */}
-      {!hasRequiredData && (
-        <Card className="border-yellow-300 bg-yellow-50 shadow-md">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3 text-yellow-800">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-base">Missing Required Data</p>
-                <p className="text-sm text-yellow-700">
-                  To create a schedule, you must have active **Courses**, **Lab
-                  Rooms**, **Sections**, **Lab Assistants**, and **Time Slots**
-                  configured in the system.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      {/* --- Data Table Card --- */}
-      <Card className="shadow-xl">
-        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
-          <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-            Current Assignments (
-            {schedules.filter((s) => s.status === "active").length})
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            A list of all active lab session assignments.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {schedules.filter((s) => s.status === "active").length === 0 ? (
-            <div className="text-center py-8 text-gray-500 italic">
-              No active schedule assignments found. Click "Add Schedule" to
-              create the first one.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader className="bg-gray-100">
-                <TableRow>
-                  <TableHead className="w-[20%] font-bold text-gray-700">
-                    Course
-                  </TableHead>
-                  <TableHead className="w-[18%] font-bold text-gray-700">
-                    Section & Group
-                  </TableHead>
-                  <TableHead className="w-[17%] font-bold text-gray-700">
-                    Lab Room
-                  </TableHead>
-                  <TableHead className="w-[25%] font-bold text-gray-700">
-                    Lab Assistant
-                  </TableHead>
-                  <TableHead className="w-[12%] font-bold text-gray-700">
-                    Day & Time
-                  </TableHead>
-                  <TableHead className="text-right w-[8%] font-bold text-gray-700">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {schedules
-                  .filter((s) => s.status === "active")
-                  .map((schedule) => {
-                    const course = getCourse(schedule.courseId);
-                    const section = getSection(schedule.sectionId);
-                    const group = schedule.groupId
-                      ? getGroup(schedule.groupId)
-                      : null;
-                    const labRoom = getLabRoom(schedule.labRoomId);
-                    const assistant = getAssistant(schedule.labAssistantId);
-                    const timeSlot = getTimeSlot(schedule.timeSlotId);
+        </motion.div>
 
-                    return (
-                      <TableRow
-                        key={schedule.id}
-                        className="hover:bg-blue-50/50 transition-colors"
+        <motion.div variants={itemVariants}>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+            <DialogTrigger asChild>
+              <Button
+                disabled={!hasRequiredData}
+                size="lg"
+                className="font-bold shadow-lg shadow-primary/20"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                New Assignment
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingSchedule ? "Edit Assignment" : "New Assignment"}
+                </DialogTitle>
+                <DialogDescription>
+                  Configure resources and time for a lab session.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Course
+                    </Label>
+                    <Select
+                      value={formData.courseId}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, courseId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courses
+                          .filter((c) => c.isActive)
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.code} - {c.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Section
+                      </Label>
+                      <Select
+                        value={formData.sectionId}
+                        onValueChange={(v) =>
+                          setFormData({
+                            ...formData,
+                            sectionId: v,
+                            groupId: "",
+                          })
+                        }
                       >
-                        <TableCell>
-                          <div>
-                            <div className="font-semibold text-gray-800">
-                              {course?.code}
+                        <SelectTrigger>
+                          <SelectValue placeholder="Section" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sections
+                            .filter((s) => s.isActive)
+                            .map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Group
+                      </Label>
+                      <Select
+                        value={formData.groupId}
+                        onValueChange={(v) =>
+                          setFormData({ ...formData, groupId: v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Group (Opt)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="no-group">
+                            Whole Section
+                          </SelectItem>
+                          {availableGroups.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>
+                              {g.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Lab Room
+                    </Label>
+                    <Select
+                      value={formData.labRoomId}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, labRoomId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select lab room" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {labRooms
+                          .filter((r) => r.isActive)
+                          .map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.name} ({r.location})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Assistant
+                    </Label>
+                    <Select
+                      value={formData.labAssistantId}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, labAssistantId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select assistant" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assistants
+                          .filter((a) => a.isActive)
+                          .map((a) => (
+                            <SelectItem key={a.id} value={a.labAssistantId}>
+                              {a.firstName} {a.lastName}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Time Slot
+                    </Label>
+                    <Select
+                      value={formData.timeSlotId}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, timeSlotId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time slot" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeSlots
+                          .filter((t) => t.isActive)
+                          .map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.dayOfWeek}: {formatTime(t.startTime)} -{" "}
+                              {formatTime(t.endTime)}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingSchedule ? "Update" : "Create"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </motion.div>
+      </div>
+
+      <AnimatePresence>
+        {!hasRequiredData && !isLoading && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+          >
+            <Card className="border-orange-500/20 bg-orange-500/5 shadow-none">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4 text-orange-600">
+                  <div className="p-2 bg-orange-600/10 rounded-lg">
+                    <AlertCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold">Setup Required</p>
+                    <p className="text-sm opacity-90">
+                      Ensure you have active courses, lab rooms, sections,
+                      assistants, and time slots configured before creating
+                      assignments.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div variants={itemVariants}>
+        <Card className="border-none shadow-2xl glass overflow-hidden">
+          <CardHeader className="bg-muted/30 pb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-black">
+                  Active Assignments
+                </CardTitle>
+                <CardDescription className="font-medium">
+                  Currently scheduled lab sessions.
+                </CardDescription>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                {schedules.filter((s) => s.status === "active").length}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Course</TableHead>
+                    <TableHead>Target</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Assistant</TableHead>
+                    <TableHead>Schedule</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedules
+                    .filter((s) => s.status === "active")
+                    .map((schedule) => {
+                      const course = getCourse(schedule.courseId);
+                      const section = getSection(schedule.sectionId);
+                      const group = schedule.groupId
+                        ? getGroup(schedule.groupId)
+                        : null;
+                      const labRoom = getLabRoom(schedule.labRoomId);
+                      const assistant = getAssistant(schedule.labAssistantId);
+                      const timeSlot = getTimeSlot(schedule.timeSlotId);
+
+                      return (
+                        <TableRow
+                          key={schedule.id}
+                          className="group transition-colors"
+                        >
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-foreground">
+                                {course?.code}
+                              </span>
+                              <span className="text-xs text-muted-foreground font-medium truncate max-w-[150px]">
+                                {course?.name}
+                              </span>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {course?.name}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-gray-800">
-                              {section?.name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {section?.department}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold">{section?.name}</span>
                               {group && (
-                                <span className="font-semibold text-blue-700">
-                                  {" "}
-                                  • {group.name}
+                                <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">
+                                  {group.name}
                                 </span>
                               )}
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-gray-800">
-                              {labRoom?.name}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-bold">{labRoom?.name}</span>
+                              <span className="text-xs text-muted-foreground font-medium">
+                                {labRoom?.location}
+                              </span>
                             </div>
-                            <div className="text-xs text-gray-500">
-                              {labRoom?.location}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-gray-800">
-                              {assistant?.firstName} {assistant?.lastName}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {assistant?.email}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {timeSlot && (
-                            <div>
-                              <div className="font-medium text-gray-800">
-                                {timeSlot.dayOfWeek}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-bold text-xs">
+                                {assistant?.firstName[0]}
+                                {assistant?.lastName[0]}
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {formatTime(timeSlot.startTime)} -{" "}
-                                {formatTime(timeSlot.endTime)}
-                              </div>
+                              <span className="font-bold text-sm">
+                                {assistant?.firstName} {assistant?.lastName}
+                              </span>
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(schedule)}
-                              className="text-blue-600 hover:bg-blue-100/70"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(schedule.id)}
-                              className="text-red-600 hover:bg-red-100/70"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                          </TableCell>
+                          <TableCell>
+                            {timeSlot && (
+                              <div className="flex flex-col">
+                                <span className="font-bold text-sm">
+                                  {timeSlot.dayOfWeek}
+                                </span>
+                                <span className="text-xs text-muted-foreground font-medium">
+                                  {formatTime(timeSlot.startTime)} -{" "}
+                                  {formatTime(timeSlot.endTime)}
+                                </span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(schedule)}
+                                className="h-8 w-8 text-primary hover:bg-primary/10"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(schedule.id)}
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
+            </div>
+            {schedules.filter((s) => s.status === "active").length === 0 && (
+              <div className="p-12 text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
+                <p className="text-muted-foreground font-medium text-lg">
+                  No assignments found.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Click "New Assignment" to get started.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

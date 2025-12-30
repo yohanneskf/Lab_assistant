@@ -1,6 +1,6 @@
 "use client";
-
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +13,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter, // Ensure DialogFooter is imported for button placement
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -36,7 +36,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Users } from "lucide-react"; // Added Users icon for the main header
+import { Plus, Edit, Trash2, Users, LayoutGrid } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.5,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
 
 interface Group {
   id: string;
@@ -59,6 +78,7 @@ interface Section {
 export default function SectionsPage() {
   const [sections, setSections] = useState<Section[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -67,7 +87,6 @@ export default function SectionsPage() {
     capacity: "",
   });
 
-  // Group state
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");
   const [groupFormData, setGroupFormData] = useState({
@@ -80,34 +99,20 @@ export default function SectionsPage() {
   }, []);
 
   const loadSections = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch("/api/sections");
       const data = await res.json();
       setSections(data);
     } catch (err) {
       console.error("Failed to fetch sections:", err);
-    }
-  };
-
-  const handleDialogChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) {
-      setEditingSection(null);
-      setFormData({ name: "", year: "", department: "", capacity: "" });
-    }
-  };
-
-  const handleGroupDialogChange = (open: boolean) => {
-    setIsGroupDialogOpen(open);
-    if (!open) {
-      setSelectedSectionId("");
-      setGroupFormData({ name: "", capacity: "" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const sectionData = {
       name: formData.name,
       year: Number(formData.year),
@@ -130,16 +135,14 @@ export default function SectionsPage() {
         });
       }
       loadSections();
-      handleDialogChange(false);
+      resetForm();
     } catch (err) {
       console.error("Failed to save section:", err);
-      // Add user feedback (e.g., toast)
     }
   };
 
   const handleGroupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const groupData = {
       name: groupFormData.name,
       sectionId: selectedSectionId,
@@ -153,10 +156,10 @@ export default function SectionsPage() {
         body: JSON.stringify(groupData),
       });
       loadSections();
-      handleGroupDialogChange(false);
+      setIsGroupDialogOpen(false);
+      setGroupFormData({ name: "", capacity: "" });
     } catch (err) {
       console.error("Failed to save group:", err);
-      // Add user feedback (e.g., toast)
     }
   };
 
@@ -172,11 +175,7 @@ export default function SectionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this section? This will also remove associated groups."
-      )
-    ) {
+    if (confirm("Delete section and all associated groups?")) {
       try {
         await fetch(`/api/sections/${id}`, { method: "DELETE" });
         loadSections();
@@ -187,7 +186,7 @@ export default function SectionsPage() {
   };
 
   const handleDeleteGroup = async (groupId: string) => {
-    if (confirm("Are you sure you want to delete this group?")) {
+    if (confirm("Delete this student group?")) {
       try {
         await fetch(`/api/groups/${groupId}`, { method: "DELETE" });
         loadSections();
@@ -197,269 +196,282 @@ export default function SectionsPage() {
     }
   };
 
-  const openGroupDialog = (sectionId: string) => {
-    setSelectedSectionId(sectionId);
-    setIsGroupDialogOpen(true);
+  const resetForm = () => {
+    setFormData({ name: "", year: "", department: "", capacity: "" });
+    setEditingSection(null);
+    setIsDialogOpen(false);
   };
 
   const getYearColor = (year: number) => {
     switch (year) {
       case 1:
-        return "bg-green-100 text-green-700 border border-green-200";
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
       case 2:
-        return "bg-blue-100 text-blue-700 border border-blue-200";
+        return "bg-blue-100 text-blue-700 border-blue-200";
       case 3:
-        return "bg-yellow-100 text-yellow-700 border border-yellow-200";
+        return "bg-amber-100 text-amber-700 border-amber-200";
       case 4:
-        return "bg-orange-100 text-orange-700 border border-orange-200";
+        return "bg-orange-100 text-orange-700 border-orange-200";
       case 5:
-        return "bg-purple-100 text-purple-700 border border-purple-200";
+        return "bg-purple-100 text-purple-700 border-purple-200";
       default:
-        return "bg-gray-100 text-gray-700 border border-gray-200";
+        return "bg-slate-100 text-slate-700 border-slate-200";
     }
   };
 
   return (
-    <div className="space-y-8">
-      {" "}
-      {/* Increased outer spacing */}
-      {/* --- Header and Action Button --- */}
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
-            <Users className="h-7 w-7 mr-3 text-blue-600" />{" "}
-            {/* Consistent blue icon */}
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="space-y-10"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+        <motion.div variants={itemVariants}>
+          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Users className="h-8 w-8 text-primary" />
+            </div>
             Sections & Groups
           </h1>
-          <p className="text-lg text-gray-500 mt-1">
-            Manage academic sections and their groups for capacity planning
+          <p className="text-muted-foreground mt-2 font-medium">
+            Divide academic years into sections and student groups.
           </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 transition duration-150 shadow-md">
-              <Plus className="mr-2 h-5 w-5" />
-              Add Section
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">
-                {editingSection ? "Edit Section" : "Add New Section"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingSection
-                  ? "Update section information and capacity."
-                  : "Create a new academic section and define its parameters."}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-              <div>
-                <Label htmlFor="name" className="font-semibold">
-                  Section Name
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g., Section A"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="year" className="font-semibold">
-                  Year Level
-                </Label>
-                <Select
-                  value={formData.year}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, year: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1st Year</SelectItem>
-                    <SelectItem value="2">2nd Year</SelectItem>
-                    <SelectItem value="3">3rd Year</SelectItem>
-                    <SelectItem value="4">4th Year</SelectItem>
-                    <SelectItem value="5">5th Year</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="department" className="font-semibold">
-                  Department
-                </Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) =>
-                    setFormData({ ...formData, department: e.target.value })
-                  }
-                  placeholder="e.g., Computer Science"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="capacity" className="font-semibold">
-                  Total Capacity (Students)
-                </Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  min="1"
-                  value={formData.capacity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, capacity: e.target.value })
-                  }
-                  placeholder="e.g., 30"
-                  required
-                />
-              </div>
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
               <Button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                size="lg"
+                className="font-bold shadow-lg shadow-primary/20"
               >
-                {editingSection ? "Update Section" : "Create Section"}
+                <Plus className="mr-2 h-5 w-5" />
+                Add Section
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-      {/* --- Data Table Card --- */}
-      <Card className="shadow-xl">
-        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
-          <CardTitle className="text-2xl font-bold text-gray-800">
-            Section Inventory ({sections.length})
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            Academic sections and their associated groups for division.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {sections.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 italic">
-              No sections found. Click "Add Section" to create the first one.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader className="bg-gray-100">
-                <TableRow>
-                  <TableHead className="w-[150px] font-bold text-gray-700">
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingSection ? "Edit Section" : "New Section"}
+                </DialogTitle>
+                <DialogDescription>
+                  Define academic cohort and total capacity.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Section Name
-                  </TableHead>
-                  <TableHead className="w-[100px] font-bold text-gray-700">
-                    Year
-                  </TableHead>
-                  <TableHead className="font-bold text-gray-700">
-                    Department
-                  </TableHead>
-                  <TableHead className="w-[100px] font-bold text-gray-700">
-                    Capacity
-                  </TableHead>
-                  <TableHead className="w-[40%] font-bold text-gray-700">
-                    Groups
-                  </TableHead>
-                  <TableHead className="text-right w-[120px] font-bold text-gray-700">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sections.map((section) => (
-                  <TableRow
-                    key={section.id}
-                    className="hover:bg-blue-50/50 transition-colors"
-                  >
-                    <TableCell className="font-semibold text-gray-800">
-                      {section.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getYearColor(section.year)}>
-                        {section.year} Year
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {section.department}
-                    </TableCell>
-                    <TableCell className="font-medium text-center text-blue-700">
-                      {section.capacity}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {section.groups.map((group) => (
-                          <Badge
-                            key={group.id}
-                            className="text-xs bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors"
-                          >
-                            {group.name} ({group.capacity})
-                            <button
-                              onClick={() => handleDeleteGroup(group.id)}
-                              className="ml-2 text-white/80 hover:text-white transition-colors"
-                            >
-                              <Trash2 className="h-3 w-3 inline-block" />
-                            </button>
-                          </Badge>
+                  </Label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="e.g., Section A"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Year Level
+                    </Label>
+                    <Select
+                      value={formData.year}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, year: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map((y) => (
+                          <SelectItem key={y} value={y.toString()}>
+                            {y}st Year
+                          </SelectItem>
                         ))}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openGroupDialog(section.id)}
-                          className="h-6 px-2 text-xs text-blue-600 hover:bg-blue-100/70 border border-dashed border-blue-300"
-                        >
-                          <Plus className="h-3 w-3 mr-1" /> Add Group
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleEdit(section)}
-                          className="text-blue-600 hover:bg-blue-100/70"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDelete(section.id)}
-                          className="text-red-600 hover:bg-red-100/70"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Max Capacity
+                    </Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={formData.capacity}
+                      onChange={(e) =>
+                        setFormData({ ...formData, capacity: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Department
+                  </Label>
+                  <Input
+                    value={formData.department}
+                    onChange={(e) =>
+                      setFormData({ ...formData, department: e.target.value })
+                    }
+                    placeholder="e.g., Computer Science"
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="ghost" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingSection ? "Update Section" : "Create Section"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </motion.div>
+      </div>
+
+      <motion.div variants={itemVariants}>
+        <Card className="border-none shadow-2xl glass overflow-hidden">
+          <CardHeader className="bg-muted/30 pb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-black">
+                  Cohorts Inventory
+                </CardTitle>
+                <CardDescription className="font-medium">
+                  {sections.length} active cohorts tracking.
+                </CardDescription>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                {sections.length}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Section Name</TableHead>
+                    <TableHead>Year</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead className="text-center">Capacity</TableHead>
+                    <TableHead className="w-[40%]">Groups Division</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  <AnimatePresence mode="popLayout">
+                    {sections.map((section) => (
+                      <TableRow
+                        key={section.id}
+                        className="group transition-colors"
+                      >
+                        <TableCell className="font-black text-foreground">
+                          {section.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "font-bold px-2",
+                              getYearColor(section.year)
+                            )}
+                          >
+                            Year {section.year}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-muted-foreground">
+                          {section.department}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/5 text-primary font-bold">
+                            {section.capacity}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {section.groups.map((group) => (
+                              <Badge
+                                key={group.id}
+                                className="bg-primary/10 text-primary border-primary/20 font-bold group/badge"
+                              >
+                                {group.name} ({group.capacity})
+                                <button
+                                  onClick={() => handleDeleteGroup(group.id)}
+                                  className="ml-1.5 opacity-0 group-hover:opacity-100 group-hover/badge:text-destructive transition-all"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedSectionId(section.id);
+                                setIsGroupDialogOpen(true);
+                              }}
+                              className="h-7 px-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 border border-dashed border-primary/30"
+                            >
+                              <Plus className="h-3 w-3 mr-1" /> Add Group
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(section)}
+                              className="h-8 w-8 text-primary hover:bg-primary/10"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(section.id)}
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Group Dialog */}
-      <Dialog open={isGroupDialogOpen} onOpenChange={handleGroupDialogChange}>
-        <DialogContent>
+      <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">
-              Add New Group
+            <DialogTitle className="flex items-center gap-2">
+              <LayoutGrid className="h-5 w-5 text-primary" /> Create Group
             </DialogTitle>
             <DialogDescription>
-              Create a new student division group for the selected section.
+              Define a student division for this section.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleGroupSubmit} className="space-y-5 pt-4">
-            <div>
-              <Label htmlFor="groupName" className="font-semibold">
+          <form onSubmit={handleGroupSubmit} className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Group Name
               </Label>
               <Input
-                id="groupName"
                 value={groupFormData.name}
                 onChange={(e) =>
                   setGroupFormData({ ...groupFormData, name: e.target.value })
@@ -468,12 +480,11 @@ export default function SectionsPage() {
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="groupCapacity" className="font-semibold">
-                Group Capacity (Students)
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Group Capacity
               </Label>
               <Input
-                id="groupCapacity"
                 type="number"
                 min="1"
                 value={groupFormData.capacity}
@@ -483,19 +494,18 @@ export default function SectionsPage() {
                     capacity: e.target.value,
                   })
                 }
-                placeholder="e.g., 15"
+                placeholder="15"
                 required
               />
             </div>
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Create Group
-            </Button>
+            <DialogFooter>
+              <Button type="submit" className="w-full">
+                Initialize Group
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

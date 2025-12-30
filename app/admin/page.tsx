@@ -15,7 +15,13 @@ import {
   Calendar,
   BarChart2,
   Layers,
-} from "lucide-react"; // Added BarChart2 and Layers for better icons
+  ArrowRight,
+  Plus,
+  Settings,
+  Shield,
+  Activity,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -26,7 +32,6 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    // NOTE: In a real app, you would want to use a state like 'loading' here.
     const fetchStats = async () => {
       try {
         const response = await fetch("/api/dashboard");
@@ -45,196 +50,312 @@ export default function AdminDashboard() {
 
   const statCards = [
     {
-      title: "Total Lab Rooms",
+      title: "Lab Rooms",
       value: stats.labRooms,
-      description: "Active lab spaces available",
+      description: "Active spaces",
       icon: Building2,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/20",
     },
     {
-      title: "Total Courses",
+      title: "Courses",
       value: stats.courses,
-      description: "Courses registered for labs",
+      description: "Registered programs",
       icon: BookOpen,
-      color: "text-green-600",
-      bg: "bg-green-50",
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+      border: "border-emerald-500/20",
     },
     {
-      title: "Lab Assistants",
+      title: "Assistants",
       value: stats.assistants,
-      description: "Staff assigned to sessions",
+      description: "Staff members",
       icon: Users,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
+      color: "text-violet-500",
+      bg: "bg-violet-500/10",
+      border: "border-violet-500/20",
     },
     {
-      title: "Total Schedules",
+      title: "Schedules",
       value: stats.schedules,
-      description: "Current active assignments",
+      description: "Active sessions",
       icon: Calendar,
-      color: "text-orange-600",
-      bg: "bg-orange-50",
+      color: "text-orange-500",
+      bg: "bg-orange-500/10",
+      border: "border-orange-500/20",
     },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 },
+  };
+
   return (
-    <div className="space-y-8 p-4 md:p-6 lg:p-8">
-      {" "}
-      {/* Added padding for the main container */}
-      {/* --- Header Section --- */}
-      <div className="border-b pb-4">
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-          Admin Dashboard
-        </h1>
-        <p className="text-lg text-gray-500 mt-1">
-          Welcome to the central command for the Lab Management System
-        </p>
-      </div>
-      {/* --- Stat Cards Grid --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            // Card Enhancement: subtle shadow, light background accent, and hover effect
+    <div className="space-y-10">
+      {/* Header section with refined typography */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            Overview
+          </h1>
+          <p className="text-muted-foreground mt-1 text-lg">
+            Analytics and management for your laboratory system.
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full text-sm font-medium border border-emerald-500/20">
+            <Activity className="h-4 w-4" />
+            <span>System Live</span>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {new Date().toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Grid for stats with modern card design */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+      >
+        {statCards.map((stat) => (
+          <motion.div key={stat.title} variants={itemVariants}>
             <Card
-              key={stat.title}
-              className="shadow-lg hover:shadow-xl transition-shadow duration-300"
+              className={`relative overflow-hidden border ${stat.border} hover:shadow-lg transition-shadow duration-300 group`}
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                   {stat.title}
                 </CardTitle>
-                {/* Icon Enhancement: Icon now has a colored circle background */}
-                <div className={`p-2 rounded-full ${stat.bg}`}>
-                  <Icon className={`h-5 w-5 ${stat.color}`} />
+                <div
+                  className={`p-2 rounded-xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-300`}
+                >
+                  <stat.icon className="h-5 w-5" />
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Value Enhancement: Larger, bolder text */}
-                <div className="text-4xl font-extrabold text-gray-900 mt-2">
+                <div className="text-3xl font-bold tracking-tight">
                   {stat.value}
                 </div>
-                {/* Description Style */}
-                <p className="text-sm text-gray-500 mt-1">{stat.description}</p>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center">
+                  <span className="text-emerald-500 font-medium mr-1">
+                    ↑ 12%
+                  </span>
+                  {stat.description}
+                </p>
               </CardContent>
+              {/* Subtle background decoration */}
+              <div
+                className={`absolute -right-4 -bottom-4 h-24 w-24 rounded-full ${stat.bg} blur-2xl opacity-50`}
+              />
             </Card>
-          );
-        })}
-      </div>
-      {/* --- Secondary Panels Grid --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Panel 1: Quick Actions (Now taking 2/3 width) */}
-        <Card className="shadow-lg lg:col-span-2">
-          <CardHeader className="border-b pb-3">
-            <CardTitle className="flex items-center text-2xl font-bold text-gray-800">
-              <Layers className="h-6 w-6 mr-3 text-blue-600" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>
-              Common administrative tasks to manage resources and scheduling
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-6">
-            <ActionItem
-              text="Create new lab room assignments"
-              iconColor="text-blue-500"
-            />
-            <ActionItem
-              text="Manage course offerings and details"
-              iconColor="text-green-500"
-            />
-            <ActionItem
-              text="Add new lab assistants to the system"
-              iconColor="text-purple-500"
-            />
-            <ActionItem
-              text="Generate and publish lab session schedules"
-              iconColor="text-orange-500"
-            />
-          </CardContent>
-        </Card>
+          </motion.div>
+        ))}
+      </motion.div>
 
-        {/* Panel 2: System Status (Now taking 1/3 width) */}
-        <Card className="shadow-lg">
-          <CardHeader className="border-b pb-3">
-            <CardTitle className="flex items-center text-2xl font-bold text-gray-800">
-              <BarChart2 className="h-6 w-6 mr-3 text-red-600" />
-              System Status
-            </CardTitle>
-            <CardDescription>
-              Current status and technical information
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-6">
-            <StatusRow
-              label="API Status:"
-              value="Online"
-              color="text-green-600"
-            />
-            <StatusRow
-              label="Database Type:"
-              value="PostgreSQL"
-              color="text-blue-600"
-            />
-            <StatusRow
-              label="Last Sync:"
-              value={new Date().toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              color="text-gray-700"
-            />
-            <StatusRow
-              label="Maintenance Mode:"
-              value="Off"
-              color="text-green-600"
-            />
-          </CardContent>
-        </Card>
+      {/* Main content area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Quick Actions Panel */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="lg:col-span-2"
+        >
+          <Card className="h-full border-border shadow-sm">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl flex items-center">
+                    <Layers className="h-5 w-5 mr-2 text-primary" />
+                    Management Controls
+                  </CardTitle>
+                  <CardDescription>
+                    Direct access to key administrative features
+                  </CardDescription>
+                </div>
+                <Settings className="h-5 w-5 text-muted-foreground hover:rotate-90 transition-transform duration-500 cursor-pointer" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ActionCard
+                  title="Assign Lab Rooms"
+                  desc="Configure space availability"
+                  icon={Building2}
+                  color="blue"
+                />
+                <ActionCard
+                  title="Manage Courses"
+                  desc="Update academic registration"
+                  icon={BookOpen}
+                  color="emerald"
+                />
+                <ActionCard
+                  title="Assistant Staff"
+                  desc="Manage roles and access"
+                  icon={Users}
+                  color="violet"
+                />
+                <ActionCard
+                  title="Session Schedules"
+                  desc="Publish and sync rotations"
+                  icon={Calendar}
+                  color="orange"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* System & Security Status */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="space-y-6"
+        >
+          <Card className="border-border shadow-sm">
+            <CardHeader className="border-b bg-muted/30">
+              <CardTitle className="text-xl flex items-center">
+                <Shield className="h-5 w-5 mr-2 text-emerald-500" />
+                Security & Sync
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-5">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Database Status</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    PostgreSQL Managed
+                  </p>
+                </div>
+                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              </div>
+
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">API Integrity</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    v2.4 Stable
+                  </p>
+                </div>
+                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              </div>
+
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Backup Schedule</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    Daily at 02:00 UTC
+                  </p>
+                </div>
+                <p className="text-xs font-semibold text-primary">ENABLED</p>
+              </div>
+
+              <div className="pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-3 flex items-center">
+                  <ClockIcon className="h-3 w-3 mr-1" />
+                  Last synchronization complete
+                </p>
+                <div className="text-sm font-medium bg-muted p-2 rounded-lg text-center">
+                  {new Date().toLocaleString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-primary text-primary-foreground border-none shadow-lg overflow-hidden relative">
+            <CardContent className="p-6 relative z-10">
+              <h3 className="font-bold flex items-center mb-2">
+                <Plus className="h-4 w-4 mr-2" />
+                Quick Deploy
+              </h3>
+              <p className="text-sm opacity-90 mb-4">
+                Automate your laboratory scheduling with our smart allocation
+                engine.
+              </p>
+              <button className="w-full bg-white text-primary py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-opacity-90 transition-all active:scale-95">
+                Run Optimizer
+              </button>
+            </CardContent>
+            <div className="absolute top-0 right-0 h-full w-1/3 bg-white/10 -skew-x-12 translate-x-8" />
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
 }
 
-// Helper components for clean code and reusable styling
-const ActionItem = ({
-  text,
-  iconColor,
-}: {
-  text: string;
-  iconColor: string;
-}) => (
-  <div className="flex items-center text-base font-medium text-gray-700 hover:text-gray-900 transition duration-150 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
-    <div
-      className={`h-2 w-2 rounded-full mr-3 ${
-        iconColor === "text-blue-500"
-          ? "bg-blue-500"
-          : iconColor === "text-green-500"
-          ? "bg-green-500"
-          : iconColor === "text-purple-500"
-          ? "bg-purple-500"
-          : "bg-orange-500"
-      }`}
-    ></div>
-    {text}
-  </div>
-);
+// Helper components for the redesigned Action Cards
+function ActionCard({ title, desc, icon: Icon, color }: any) {
+  const colors: any = {
+    blue: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    emerald: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    violet: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+    orange: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+  };
 
-const StatusRow = ({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) => (
-  <div className="flex justify-between text-base border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
-    <span className="font-medium text-gray-600">{label}</span>
-    <span className={`font-semibold ${color}`}>{value}</span>
-  </div>
-);
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="p-4 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/30 transition-all cursor-pointer group"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className={`p-2 rounded-lg ${colors[color]}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 duration-300" />
+      </div>
+      <h4 className="font-bold text-base group-hover:text-primary transition-colors">
+        {title}
+      </h4>
+      <p className="text-sm text-muted-foreground">{desc}</p>
+    </motion.div>
+  );
+}
+
+function ClockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}

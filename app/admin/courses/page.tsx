@@ -1,11 +1,7 @@
 "use client";
-
-import type React from "react";
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -13,10 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -29,7 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -39,7 +38,24 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit, Trash2, BookOpen } from "lucide-react";
 
-// Define the Course type here or import it from a shared types file
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
+
 interface Course {
   id: string;
   code: string;
@@ -58,6 +74,7 @@ interface Course {
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState({
     code: "",
@@ -74,48 +91,42 @@ export default function CoursesPage() {
     loadCourses();
   }, []);
 
-  // Use fetch to get data from the API route
   const loadCourses = async () => {
-    // NOTE: Add error handling and loading state for a production app
-    const res = await fetch("/api/courses");
-    const coursesData = await res.json();
-    setCourses(coursesData);
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/courses");
+      const data = await res.json();
+      setCourses(data);
+    } catch (error) {
+      console.error("Failed to load courses:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const courseData = {
-      ...formData,
-      isActive: true,
-    };
+    const courseData = { ...formData, isActive: true };
 
     try {
       if (editingCourse) {
-        // Use fetch with PATCH to update the course
-        const res = await fetch(`/api/courses/${editingCourse.id}`, {
+        await fetch(`/api/courses/${editingCourse.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(courseData),
         });
-        if (!res.ok) throw new Error("Update failed");
       } else {
-        // Use fetch with POST to create a new course
-        const res = await fetch("/api/courses", {
+        await fetch("/api/courses", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(courseData),
         });
-        if (!res.ok) throw new Error("Creation failed");
       }
+      loadCourses();
+      resetForm();
     } catch (error) {
       console.error("API call failed:", error);
-      // Implement user-facing error message here
     }
-
-    loadCourses();
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (course: Course) => {
@@ -134,17 +145,9 @@ export default function CoursesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this course? This action cannot be undone."
-      )
-    ) {
+    if (confirm("Are you sure you want to delete this course?")) {
       try {
-        // Use fetch with DELETE to deactivate the course
-        const res = await fetch(`/api/courses/${id}`, {
-          method: "DELETE",
-        });
-        if (!res.ok) throw new Error("Deletion failed");
+        await fetch(`/api/courses/${id}`, { method: "DELETE" });
         loadCourses();
       } catch (error) {
         console.error("Delete failed:", error);
@@ -164,343 +167,301 @@ export default function CoursesPage() {
       studentType: "regular",
     });
     setEditingCourse(null);
-  };
-
-  const handleDialogChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) {
-      resetForm();
-    }
+    setIsDialogOpen(false);
   };
 
   const getYearColor = (year: number) => {
     switch (year) {
       case 1:
-        return "bg-green-100 text-green-700 font-semibold border border-green-200";
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
       case 2:
-        return "bg-blue-100 text-blue-700 font-semibold border border-blue-200";
+        return "bg-blue-100 text-blue-700 border-blue-200";
       case 3:
-        return "bg-yellow-100 text-yellow-700 font-semibold border border-yellow-200";
+        return "bg-amber-100 text-amber-700 border-amber-200";
       case 4:
-        return "bg-orange-100 text-orange-700 font-semibold border border-orange-200";
+        return "bg-orange-100 text-orange-700 border-orange-200";
       case 5:
-        return "bg-purple-100 text-purple-700 font-semibold border border-purple-200";
+        return "bg-purple-100 text-purple-700 border-purple-200";
       default:
-        return "bg-gray-100 text-gray-700 font-semibold border border-gray-200";
+        return "bg-slate-100 text-slate-700 border-slate-200";
     }
   };
 
   return (
-    <div className="space-y-8">
-      {" "}
-      {/* Increased outer spacing */}
-      {/* --- Header and Action Button --- */}
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight flex items-center">
-            <BookOpen className="h-7 w-7 mr-3 text-green-600" />
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="space-y-10"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+        <motion.div variants={itemVariants}>
+          <h1 className="text-4xl font-black text-foreground tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <BookOpen className="h-8 w-8 text-primary" />
+            </div>
             Courses
           </h1>
-          <p className="text-lg text-gray-500 mt-1">
-            Manage course catalog with academic structure details
+          <p className="text-muted-foreground mt-2 font-medium">
+            Manage course catalog and academic structure.
           </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-          <DialogTrigger asChild>
-            <Button className="bg-green-600 hover:bg-green-700 transition duration-150 shadow-md">
-              <Plus className="mr-2 h-5 w-5" />
-              Add Course
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">
-                {editingCourse ? "Edit Course" : "Add New Course"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingCourse
-                  ? "Update course information and academic structure."
-                  : "Create a new course with academic details for scheduling."}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-              {" "}
-              {/* Increased form spacing */}
-              <div className="grid grid-cols-2 gap-4">
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                size="lg"
+                className="font-bold shadow-lg shadow-primary/20"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Add Course
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingCourse ? "Edit Course" : "Add New Course"}
+                </DialogTitle>
+                <DialogDescription>
+                  Define course parameters and academic structure.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Course Code
+                    </Label>
+                    <Input
+                      value={formData.code}
+                      onChange={(e) =>
+                        setFormData({ ...formData, code: e.target.value })
+                      }
+                      placeholder="e.g., CS101"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Credits
+                    </Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={formData.credits}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          credits: parseInt(e.target.value),
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="code" className="font-semibold">
-                    Course Code
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Course Name
                   </Label>
                   <Input
-                    id="code"
-                    value={formData.code}
+                    value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, code: e.target.value })
+                      setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="e.g., CS101"
+                    placeholder="e.g., Introduction to Computer Science"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="credits" className="font-semibold">
-                    Credits
-                  </Label>
-                  <Input
-                    id="credits"
-                    type="number"
-                    min="1"
-                    max="6"
-                    value={formData.credits}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        credits: Number.parseInt(e.target.value),
-                      })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="name" className="font-semibold">
-                  Course Name
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g., Introduction to Computer Science"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="department" className="font-semibold">
-                  Department
-                </Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) =>
-                    setFormData({ ...formData, department: e.target.value })
-                  }
-                  placeholder="e.g., Computer Science"
-                  required
-                />
-              </div>
-              {/* Academic Structure Group */}
-              <div className="grid grid-cols-3 gap-4 border p-4 rounded-lg bg-gray-50">
-                <h4 className="col-span-3 text-sm font-bold text-gray-700 uppercase mb-2">
-                  Academic Structure
-                </h4>
-                <div className="space-y-2">
-                  <Label htmlFor="year">Year Level</Label>
-                  <Select
-                    value={formData.year.toString()}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, year: Number.parseInt(value) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1st Year</SelectItem>
-                      <SelectItem value="2">2nd Year</SelectItem>
-                      <SelectItem value="3">3rd Year</SelectItem>
-                      <SelectItem value="4">4th Year</SelectItem>
-                      <SelectItem value="5">5th Year</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="section">Section</Label>
-                  <Input
-                    id="section"
-                    value={formData.section}
-                    onChange={(e) =>
-                      setFormData({ ...formData, section: e.target.value })
-                    }
-                    placeholder="e.g., A, B, C"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="batch">Batch (Year)</Label>
-                  <Input
-                    id="batch"
-                    value={formData.batch}
-                    onChange={(e) =>
-                      setFormData({ ...formData, batch: e.target.value })
-                    }
-                    placeholder="e.g., 2024"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="studentType" className="font-semibold">
-                  Student Type
-                </Label>
-                <Select
-                  value={formData.studentType}
-                  onValueChange={(value: "regular" | "extension") =>
-                    setFormData({ ...formData, studentType: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="regular">Regular</SelectItem>
-                    <SelectItem value="extension">Extension</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {editingCourse ? "Update Course" : "Create Course"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-      {/* --- Data Table Card --- */}
-      <Card className="shadow-xl">
-        <CardHeader className="bg-gray-50 rounded-t-lg border-b">
-          <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-            Course Catalog ({courses.length})
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            All courses with academic structure details
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {courses.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 italic">
-              No courses found. Click "Add Course" to get started.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader className="bg-gray-100">
-                <TableRow>
-                  <TableHead className="w-[100px] font-bold text-gray-700">
-                    Code
-                  </TableHead>
-                  <TableHead className="w-[300px] font-bold text-gray-700">
-                    Name
-                  </TableHead>
-                  <TableHead className="font-bold text-gray-700">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Department
-                  </TableHead>
-                  <TableHead className="font-bold text-gray-700">
-                    Year & Section
-                  </TableHead>
-                  <TableHead className="w-[80px] font-bold text-gray-700">
-                    Batch
-                  </TableHead>
-                  <TableHead className="w-[100px] font-bold text-gray-700">
-                    Type
-                  </TableHead>
-                  <TableHead className="w-[80px] font-bold text-gray-700">
-                    Credits
-                  </TableHead>
-                  <TableHead className="text-right font-bold text-gray-700 w-[120px]">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {courses.map((course) => (
-                  <TableRow
-                    key={course.id}
-                    className="hover:bg-green-50/50 transition-colors"
-                  >
-                    <TableCell className="font-semibold text-green-700">
-                      {course.code}
-                    </TableCell>
-                    <TableCell className="text-gray-800 font-medium">
-                      {course.name}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {course.department}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getYearColor(course.year)}>
-                          Year {course.year}
-                        </Badge>
-                        <span className="text-sm text-gray-600">
-                          Sec {course.section}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-700">
-                      {course.batch}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          course.studentType === "regular"
-                            ? "default"
-                            : "outline"
-                        }
-                        className={
-                          course.studentType === "regular"
-                            ? "bg-purple-600 hover:bg-purple-700 text-white"
-                            : "border-purple-300 text-purple-600"
-                        }
-                      >
-                        {course.studentType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className="bg-gray-200 text-gray-700 font-semibold"
-                      >
-                        {course.credits} Cr
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(course)}
-                          className="text-blue-600 hover:bg-blue-100/70"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(course.id)}
-                          className="text-red-600 hover:bg-red-100/70"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                  </Label>
+                  <Input
+                    value={formData.department}
+                    onChange={(e) =>
+                      setFormData({ ...formData, department: e.target.value })
+                    }
+                    placeholder="e.g., Computer Science"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      Year
+                    </Label>
+                    <Select
+                      value={formData.year.toString()}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, year: parseInt(v) })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map((y) => (
+                          <SelectItem key={y} value={y.toString()}>
+                            {y}st Year
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      Section
+                    </Label>
+                    <Input
+                      value={formData.section}
+                      onChange={(e) =>
+                        setFormData({ ...formData, section: e.target.value })
+                      }
+                      placeholder="A"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      Batch
+                    </Label>
+                    <Input
+                      value={formData.batch}
+                      onChange={(e) =>
+                        setFormData({ ...formData, batch: e.target.value })
+                      }
+                      placeholder="2024"
+                      required
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="ghost" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingCourse ? "Update Course" : "Create Course"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </motion.div>
+      </div>
+
+      <motion.div variants={itemVariants}>
+        <Card className="border-none shadow-2xl glass overflow-hidden">
+          <CardHeader className="bg-muted/30 pb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-black">
+                  Course Catalog
+                </CardTitle>
+                <CardDescription className="font-medium">
+                  {courses.length} active courses registered.
+                </CardDescription>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                {courses.length}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code & Name</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Structure</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-center">Credits</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                </TableHeader>
+                <TableBody>
+                  <AnimatePresence mode="popLayout">
+                    {courses.map((course) => (
+                      <TableRow
+                        key={course.id}
+                        className="group transition-colors"
+                      >
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-primary text-xs tracking-wider uppercase">
+                              {course.code}
+                            </span>
+                            <span className="font-bold text-foreground">
+                              {course.name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-muted-foreground">
+                          {course.department}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge className={getYearColor(course.year)}>
+                              Year {course.year}
+                            </Badge>
+                            <span className="text-sm font-bold text-muted-foreground">
+                              Sec {course.section}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              course.studentType === "regular"
+                                ? "default"
+                                : "outline"
+                            }
+                            className="capitalize"
+                          >
+                            {course.studentType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/5 text-primary font-bold">
+                            {course.credits}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(course)}
+                              className="h-8 w-8 text-primary hover:bg-primary/10"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(course.id)}
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+            </div>
+            {courses.length === 0 && !isLoading && (
+              <div className="p-12 text-center text-muted-foreground whitespace-pre-line">
+                No courses found.{"\n"}Click "Add Course" to get started.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

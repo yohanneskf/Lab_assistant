@@ -8,71 +8,125 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { initializeDefaultData } from "@/lib/local-storage";
-import { UserCog, Users } from "lucide-react";
+import { UserCog, Users, Beaker } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function HomePage() {
   useEffect(() => {
     initializeDefaultData();
   }, []);
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        staggerChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12">
-      <div className="max-w-md w-full p-6 sm:p-8 space-y-10 bg-white rounded-xl shadow-2xl">
-        <div className="text-center">
-          {/* 3. Larger and More Prominent Heading */}
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-            Lab Management System
-          </h1>
-          {/* 4. Subtitle Style */}
-          <p className="mt-3 text-xl text-gray-500 font-medium">
-            Choose your login type
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 -right-4 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-4xl w-full z-10"
+      >
+        <div className="text-center mb-12">
+          <motion.div
+            variants={itemVariants}
+            className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-6"
+          >
+            <Beaker className="h-10 w-10 text-primary" />
+          </motion.div>
+          <motion.h1
+            variants={itemVariants}
+            className="text-5xl md:text-6xl font-bold text-foreground tracking-tight mb-4"
+          >
+            Lab Management{" "}
+            <span className="text-primary font-extrabold">System</span>
+          </motion.h1>
+          <motion.p
+            variants={itemVariants}
+            className="text-xl text-muted-foreground font-medium max-w-2xl mx-auto"
+          >
+            Streamline your laboratory operations with our professional
+            management platform. Choose your portal below to get started.
+          </motion.p>
         </div>
 
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           {/* --- Admin Card --- */}
-          {/* 5. Enhanced Hover Effect: Brighter shadow and slight scale on hover, added border */}
-          <Card className="border border-blue-200 hover:border-blue-500 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
-            <Link href="/admin-login" className="block p-4">
-              <CardHeader className="text-center">
-                {/* 6. Larger, More Contrast Icon Container */}
-                <div className="mx-auto w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-md">
-                  <UserCog className="h-7 w-7 text-white" />
-                </div>
-                {/* 7. Card Title Style */}
-                <CardTitle className="text-2xl font-semibold text-gray-800">
-                  Admin Login
-                </CardTitle>
-                <CardDescription className="text-gray-500 mt-2">
-                  Access the admin dashboard to manage lab rooms, courses,
-                  assistants, and schedules
-                </CardDescription>
-              </CardHeader>
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -5 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Link href="/admin-login" className="block group h-full">
+              <Card className="h-full border-border bg-card/50 backdrop-blur-sm group-hover:border-primary/50 group-hover:shadow-2xl transition-all duration-300">
+                <CardHeader className="text-center p-8">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary transition-colors duration-300">
+                    <UserCog className="h-8 w-8 text-primary group-hover:text-primary-foreground transition-colors duration-300" />
+                  </div>
+                  <CardTitle className="text-2xl font-bold mb-3">
+                    Admin Portal
+                  </CardTitle>
+                  <CardDescription className="text-base text-muted-foreground">
+                    Comprehensive management of lab rooms, courses, assistants,
+                    and global schedules.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             </Link>
-          </Card>
+          </motion.div>
 
           {/* --- Assistant Card --- */}
-          {/* 5. Enhanced Hover Effect: Brighter shadow and slight scale on hover, added border */}
-          <Card className="border border-green-200 hover:border-green-500 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
-            <Link href="/assistant-login" className="block p-4">
-              <CardHeader className="text-center">
-                {/* 6. Larger, More Contrast Icon Container */}
-                <div className="mx-auto w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mb-4 shadow-md">
-                  <Users className="h-7 w-7 text-white" />
-                </div>
-                {/* 7. Card Title Style */}
-                <CardTitle className="text-2xl font-semibold text-gray-800">
-                  Lab Assistant Login
-                </CardTitle>
-                <CardDescription className="text-gray-500 mt-2">
-                  View your assigned lab schedules and manage your sessions
-                </CardDescription>
-              </CardHeader>
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -5 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Link href="/assistant-login" className="block group h-full">
+              <Card className="h-full border-border bg-card/50 backdrop-blur-sm group-hover:border-green-500/50 group-hover:shadow-2xl transition-all duration-300">
+                <CardHeader className="text-center p-8">
+                  <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-green-500 transition-colors duration-300">
+                    <Users className="h-8 w-8 text-green-600 group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <CardTitle className="text-2xl font-bold mb-3">
+                    Assistant Portal
+                  </CardTitle>
+                  <CardDescription className="text-base text-muted-foreground">
+                    Access your personalized lab schedules and manage your daily
+                    sessions with ease.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             </Link>
-          </Card>
+          </motion.div>
         </div>
-      </div>
+
+        <motion.div
+          variants={itemVariants}
+          className="mt-16 text-center text-sm text-muted-foreground"
+        >
+          © {new Date().getFullYear()} Lab Management System. All rights
+          reserved.
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

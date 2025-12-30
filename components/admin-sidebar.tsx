@@ -17,10 +17,11 @@ import {
   X,
   Layers,
   LayoutDashboard,
+  ShieldCheck,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navigation = [
-  // Renamed the icon for Dashboard for clarity
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Lab Rooms", href: "/admin/lab-rooms", icon: Building2 },
   { name: "Courses", href: "/admin/courses", icon: BookOpen },
@@ -43,18 +44,17 @@ export function AdminSidebar() {
   return (
     <>
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        {/* Use the primary button style for better visibility */}
+      <div className="lg:hidden fixed top-4 right-4 z-50">
         <Button
-          variant="default"
+          variant="outline"
           size="icon"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-blue-600 hover:bg-blue-700 shadow-lg"
+          className="bg-background/80 backdrop-blur-md border-border shadow-lg"
         >
           {isMobileMenuOpen ? (
-            <X className="h-5 w-5 text-white" />
+            <X className="h-5 w-5" />
           ) : (
-            <Menu className="h-5 w-5 text-white" />
+            <Menu className="h-5 w-5" />
           )}
         </Button>
       </div>
@@ -62,27 +62,25 @@ export function AdminSidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-xl lg:shadow-md", // Added shadow and slightly longer transition
+          "fixed inset-y-0 left-0 z-40 w-72 bg-card border-r border-border transform transition-transform duration-500 ease-in-out lg:translate-x-0 shadow-2xl lg:shadow-none",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Header/Logo Section */}
-          <div className="flex items-center justify-center h-16 px-4 border-b border-blue-600 bg-blue-600 shadow-md">
-            {" "}
-            {/* Primary color header */}
-            <h1 className="text-2xl font-bold text-white tracking-wider">
+          <div className="flex items-center space-x-3 h-20 px-6 border-b border-border">
+            <div className="p-2 bg-primary rounded-xl">
+              <ShieldCheck className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-foreground">
               LMS Admin
-            </h1>
+            </span>
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {" "}
-            {/* Increased vertical padding and added overflow */}
+          <nav className="flex-1 px-4 py-8 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const Icon = item.icon;
-              // Check if the current path starts with the item's href for better sub-route matching
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/admin" && pathname.startsWith(item.href));
@@ -92,25 +90,41 @@ export function AdminSidebar() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "flex items-center px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-150 ease-in-out", // Refined spacing and font
+                    "group relative flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
                     isActive
-                      ? "bg-blue-100 text-blue-700 border-l-4 border-blue-600" // Stronger active state
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute left-0 w-1 h-6 bg-primary rounded-r-full"
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                  <Icon
+                    className={cn(
+                      "mr-3 h-5 w-5 transition-transform duration-200 group-hover:scale-110",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )}
+                  />
                   {item.name}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Logout Section */}
-          <div className="p-4 border-t border-gray-200">
+          {/* User Section & Logout */}
+          <div className="p-4 border-t border-border bg-muted/30">
             <Button
-              variant="outline"
-              className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" // Red accent for Sign Out
+              variant="ghost"
+              className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl transition-colors"
               onClick={handleLogout}
             >
               <LogOut className="mr-3 h-4 w-4" />
@@ -121,12 +135,17 @@ export function AdminSidebar() {
       </div>
 
       {/* Mobile overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black bg-opacity-70 lg:hidden" // Darker overlay for better focus
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-30 bg-background/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
