@@ -438,10 +438,10 @@ export default function SchedulesPage() {
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="h-[calc(100vh-8.5rem)] flex flex-col gap-6"
+      className="h-auto lg:h-[calc(100vh-8.5rem)] flex flex-col gap-6"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full min-h-0">
-        <Card className="lg:col-span-3 border-none shadow-2xl glass overflow-hidden flex flex-col h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-auto lg:h-full min-h-0">
+        <Card className="lg:col-span-3 border-none shadow-2xl glass lg:overflow-hidden flex flex-col h-fit lg:h-full">
           <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center justify-between">
               <div>
@@ -457,7 +457,7 @@ export default function SchedulesPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0 flex-1 overflow-y-auto">
+          <CardContent className="p-0 flex-1 lg:overflow-y-auto">
             <div className="p-6">
               <DataTable
                 columns={columns}
@@ -676,7 +676,7 @@ export default function SchedulesPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-2xl glass overflow-hidden h-full flex flex-col">
+        <Card className="border-none shadow-2xl glass lg:overflow-hidden h-fit lg:h-full flex flex-col">
           <CardHeader className="bg-muted/30 pb-6 border-b shrink-0">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
@@ -688,7 +688,7 @@ export default function SchedulesPage() {
               Active sessions per laboratory
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 flex-1 overflow-y-auto">
+          <CardContent className="p-6 flex-1 lg:overflow-y-auto">
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={utilizationData} layout="vertical">
